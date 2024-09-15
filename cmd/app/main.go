@@ -31,6 +31,7 @@ func main() {
 		log.Fatalf("error setting up database connection: %s", err)
 	}
 	if err := db.Ping(); err != nil {
+		// TODO: Use exponential backoff to retry, with timeout.
 		log.Fatalf("error verifying database connection: %s", err)
 	}
 

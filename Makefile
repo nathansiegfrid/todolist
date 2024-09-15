@@ -1,7 +1,7 @@
-# Load ".env" if file exists.
+# Load ".env" file if exists.
 ifneq (,$(wildcard ./.env))
-    include .env
-    export
+	include .env
+	export
 endif
 
 # GO COMMANDS
@@ -19,3 +19,13 @@ db-down:
 	goose -dir migration postgres "$(DB_STRING)" down
 db-reset:
 	goose -dir migration postgres "$(DB_STRING)" reset
+
+# DOCKER COMMANDS
+docker-build:
+	docker build -t nathansiegfrid/todolist-go .
+docker-push:
+	docker push nathansiegfrid/todolist-go
+compose-up:
+	docker compose up -d --build
+compose-down:
+	docker compose down
