@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -30,9 +31,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("error setting up database connection: %s", err)
 	}
-	if err := db.Ping(); err != nil {
-		// TODO: Use exponential backoff to retry, with timeout.
-		log.Fatalf("error verifying database connection: %s", err)
+	// Verify DB connection. If error, retry with exponential backoff.
+	log.Print("verifying database connection...")
+	start, sleep, timeout := time.Now(), time.Second, 30*time.Second
+	for {
+		err := db.Ping()
+		if err == nil {
+			log.Print("connected to database")
+			break
+		}
+		if time.Since(start) > timeout {
+			log.Fatalf("error verifying database connection: %s", err)
+			break
+		}
+		time.Sleep(sleep)
+		sleep *= 2
 	}
 
 	// RUN DATABASE MIGRATIONS
