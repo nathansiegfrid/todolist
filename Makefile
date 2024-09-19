@@ -6,7 +6,7 @@ endif
 
 # GO COMMANDS
 run:
-	go run ./cmd/app
+	go run ./cmd/app -development -service-name=todolist-local
 update:
 	go get -u -t ./...
 	go mod tidy

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/google/uuid"
 )
@@ -15,4 +16,8 @@ func ContextWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
 func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	userID, ok := ctx.Value(userIDKey{}).(uuid.UUID)
 	return userID, ok
+}
+
+func AuthenticationMiddleware(next http.Handler) http.Handler {
+	panic("not implemented")
 }

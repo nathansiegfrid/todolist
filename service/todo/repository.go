@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nathansiegfrid/todolist-go/service"
 )
 
@@ -59,24 +58,24 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 	return todo, nil
 }
 
-func (r *Repository) Create(ctx context.Context, t *Todo) error {
+func (r *Repository) Create(ctx context.Context, t *CreateTodoRequest) error {
 	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO todo (user_id, description, completed)
-		VALUES ($1, $2, $3)`,
-		t.UserID, t.Description, t.Completed,
+		INSERT INTO todo (user_id, description)
+		VALUES ($1, $2)`,
+		t.UserID, t.Description,
 	)
-	if err != nil {
-		// This check is unnecessary, it's here as template.
-		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
-			// 23505 is the PostgreSQL error code for unique_violation.
-			return service.ErrConflict("ID", t.ID.String())
-		}
-		return err
-	}
-	return nil
+	// if err != nil {
+	// 	// This check is unnecessary, it's here as template.
+	// 	if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+	// 		// 23505 is the PostgreSQL error code for unique_violation.
+	// 		return service.ErrConflict("ID", req.ID.String())
+	// 	}
+	// 	return err
+	// }
+	return err
 }
 
-func (r *Repository) Update(ctx context.Context, id uuid.UUID, t *Todo) error {
+func (r *Repository) Update(ctx context.Context, id uuid.UUID, t *UpdateTodoRequest) error {
 	result, err := r.db.ExecContext(ctx, `
 		UPDATE todo
 		SET description = $1, completed = $2

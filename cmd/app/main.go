@@ -2,23 +2,41 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nathansiegfrid/todolist-go/config"
+	"github.com/nathansiegfrid/todolist-go/service"
 	"github.com/nathansiegfrid/todolist-go/service/todo"
 	"github.com/pressly/goose/v3"
 )
 
 func main() {
+	svcName := flag.String("service-name", "todolist", "Specifies the service name included in log output.")
+	devMode := flag.Bool("development", false, "Output logs in human-readable format instead of JSON.")
+	flag.Parse()
+
+	// INIT GLOBAL LOGGER
+	var logger *slog.Logger
+	if *devMode {
+		logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+	} else {
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	}
+	slog.SetDefault(logger.With("service", *svcName))
+
 	// LOAD APPLICATION CONFIG
 	c, err := config.Load()
 	if err != nil {
-		log.Fatalf("error loading config: %s", err)
+		slog.Error(err.Error())
+		return
 	}
 
 	// CONNECT TO DATABASE
@@ -29,20 +47,22 @@ func main() {
 		c.PGHost, c.PGPort, c.PGUser, c.PGPassword, c.PGDatabase, c.PGSSLMode, c.PGRootCertLoc,
 	))
 	if err != nil {
-		log.Fatalf("error setting up database connection: %s", err)
+		slog.Error(fmt.Sprintf("error setting up database connection: %s", err))
+		return
 	}
+
 	// Verify DB connection. If error, retry with exponential backoff.
-	log.Print("verifying database connection...")
+	slog.Info("verifying database connection...")
 	start, sleep, timeout := time.Now(), time.Second, 30*time.Second
 	for {
 		err := db.Ping()
 		if err == nil {
-			log.Print("connected to database")
+			slog.Info("connected to database")
 			break
 		}
 		if time.Since(start) > timeout {
-			log.Fatalf("error verifying database connection: %s", err)
-			break
+			slog.Error(fmt.Sprintf("error verifying database connection: %s", err))
+			return
 		}
 		time.Sleep(sleep)
 		sleep *= 2
@@ -50,12 +70,17 @@ func main() {
 
 	// RUN DATABASE MIGRATIONS
 	// Goose supports out of order migration with "allow missing" option.
-	if err := goose.Up(db, "migration", goose.WithAllowMissing()); err != nil {
-		log.Fatalf("error running database migrations: %s", err)
+	err = goose.Up(db, "migration", goose.WithAllowMissing())
+	if err != nil {
+		slog.Error(fmt.Sprintf("error running database migrations: %s", err))
+		return
 	}
 
 	// ADD SERVICE HANDLERS TO HTTP ROUTER
 	router := chi.NewRouter()
+	router.Use(middleware.Heartbeat("/ping"))
+	router.Use(service.RequestIDMiddleware)
+	router.Use(service.LoggerMiddleware)
 	router.Route("/api/v1", func(router chi.Router) {
 		// Add public routes.
 		// TODO: Implement these routes!
@@ -65,7 +90,7 @@ func main() {
 		// Add private routes.
 		router.Group(func(router chi.Router) {
 			// TODO: Use auth middleware here!
-			todoHandler := todo.NewHandler(todo.NewService(todo.NewRepository(db)))
+			todoHandler := todo.NewHandler(db)
 			router.Mount("/todo", todoHandler.HTTPHandler())
 		})
 	})
@@ -75,10 +100,12 @@ func main() {
 		Addr:    fmt.Sprintf("%s:%d", c.APIHost, c.APIPort),
 		Handler: router,
 	}
-	log.Printf("HTTP server listening on %s", svr.Addr)
-	if err := svr.ListenAndServe(); err != nil {
-		log.Fatalf("error running HTTP server: %s", err)
+
+	slog.Info(fmt.Sprintf("HTTP server listening on %s", svr.Addr))
+	err = svr.ListenAndServe()
+	if err != nil {
+		slog.Error(fmt.Sprintf("error running HTTP server: %s", err))
+		return
 	}
 	// TODO: Implement graceful shutdown!
-	log.Fatalf("error shutting down HTTP server: %s", err)
 }

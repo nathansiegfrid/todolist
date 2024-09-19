@@ -31,7 +31,7 @@ func StatusCode(err error) int {
 	if errors.As(err, &apiErr) {
 		return apiErr.StatusCode
 	}
-	return 0
+	return http.StatusInternalServerError
 }
 
 // ErrInvalidJSON is used when JSON decoder failed to parse the request body.

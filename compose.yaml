@@ -4,6 +4,9 @@ services:
     container_name: todolist
     image: nathansiegfrid/todolist-go
     build: .
+    command:
+    - -service-name=todolist-docker
+    - -development
     ports:
     - ${API_PORT:-8080}:8080
     depends_on:
