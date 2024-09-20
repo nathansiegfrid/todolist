@@ -10,10 +10,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/nathansiegfrid/todolist-go/config"
-	"github.com/nathansiegfrid/todolist-go/service"
+	"github.com/nathansiegfrid/todolist-go/middleware"
 	"github.com/nathansiegfrid/todolist-go/service/todo"
 	"github.com/pressly/goose/v3"
 )
@@ -79,8 +78,8 @@ func main() {
 	// ADD SERVICE HANDLERS TO HTTP ROUTER
 	router := chi.NewRouter()
 	router.Use(middleware.Heartbeat("/ping"))
-	router.Use(service.RequestIDMiddleware)
-	router.Use(service.LoggerMiddleware)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
 	router.Route("/api/v1", func(router chi.Router) {
 		// Add public routes.
 		// TODO: Implement these routes!

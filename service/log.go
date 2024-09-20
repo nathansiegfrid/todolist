@@ -2,11 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
-	"time"
 )
 
 // Logger returns the default slog.Logger with additional information from context.Context.
@@ -30,47 +27,4 @@ func LogInternalError(ctx context.Context, err error) {
 		return
 	}
 	LogError(ctx, err)
-}
-
-// responseWriter is a wrapper for http.ResponseWriter.
-type responseWriter struct {
-	http.ResponseWriter
-	statusCode  int
-	wroteHeader bool
-}
-
-func (w *responseWriter) WriteHeader(statusCode int) {
-	if w.wroteHeader {
-		return
-	}
-	w.statusCode = statusCode
-	w.ResponseWriter.WriteHeader(statusCode)
-	w.wroteHeader = true
-}
-
-// LoggerMiddleware should be used after RequestIDMiddleware and AuthenticationMiddleware.
-func LoggerMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logger := Logger(r.Context())
-
-		// Recover and log panics.
-		defer func() {
-			if err := recover(); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				logger.Error(fmt.Sprintf("panic: %s", err), "trace", string(debug.Stack()))
-			}
-		}()
-
-		start := time.Now()
-		ww := &responseWriter{ResponseWriter: w}
-		next.ServeHTTP(ww, r)
-
-		logger.Info(
-			fmt.Sprintf("response: %d %s", ww.statusCode, http.StatusText(ww.statusCode)),
-			"status", ww.statusCode,
-			"method", r.Method,
-			"path", r.URL.EscapedPath(),
-			"duration", time.Since(start),
-		)
-	})
 }
