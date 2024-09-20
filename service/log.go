@@ -26,7 +26,7 @@ func LogError(ctx context.Context, err error) {
 }
 
 func LogInternalError(ctx context.Context, err error) {
-	if StatusCode(err) != http.StatusInternalServerError {
+	if ErrorStatusCode(err) != http.StatusInternalServerError {
 		return
 	}
 	LogError(ctx, err)
