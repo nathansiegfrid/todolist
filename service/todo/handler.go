@@ -15,8 +15,8 @@ import (
 type repository interface {
 	GetAll(ctx context.Context) ([]*Todo, error)
 	Get(ctx context.Context, id uuid.UUID) (*Todo, error)
-	Create(ctx context.Context, req *CreateTodoRequest) error
-	Update(ctx context.Context, id uuid.UUID, req *UpdateTodoRequest) error
+	Create(ctx context.Context, todo *Todo) error
+	Update(ctx context.Context, id uuid.UUID, update *TodoUpdate) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -35,7 +35,7 @@ func (h *Handler) HTTPHandler() http.Handler {
 	r.Get("/", h.getAllTodos)
 	r.Get("/{id}", h.getTodo)
 	r.Post("/", h.createTodo)
-	r.Put("/{id}", h.updateTodo)
+	r.Patch("/{id}", h.updateTodo)
 	r.Delete("/{id}", h.deleteTodo)
 	return r
 }
@@ -70,7 +70,7 @@ func (h *Handler) getTodo(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 	// Read request body.
-	var reqBody *CreateTodoRequest
+	var reqBody *Todo
 	err := json.NewDecoder(r.Body).Decode(&reqBody)
 	if err != nil {
 		service.WriteError(w, service.ErrInvalidJSON())
@@ -105,7 +105,7 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read request body.
-	var reqBody *UpdateTodoRequest
+	var reqBody *TodoUpdate
 	err = json.NewDecoder(r.Body).Decode(&reqBody)
 	if err != nil {
 		service.WriteError(w, service.ErrInvalidJSON())

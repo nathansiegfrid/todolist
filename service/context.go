@@ -22,11 +22,11 @@ func RequestIDFromContext(ctx context.Context) (string, bool) {
 	return reqID, ok
 }
 
-func ContextWithUserID(ctx context.Context, userID uuid.UUID) context.Context {
+func ContextWithUserID(ctx context.Context, userID uuid.NullUUID) context.Context {
 	return context.WithValue(ctx, userIDContextKey, userID)
 }
 
-func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+func UserIDFromContext(ctx context.Context) (uuid.NullUUID, bool) {
 	userID, ok := ctx.Value(userIDContextKey).(uuid.UUID)
-	return userID, ok
+	return uuid.NullUUID{UUID: userID, Valid: ok}, ok
 }

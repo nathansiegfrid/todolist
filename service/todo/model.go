@@ -11,12 +11,7 @@ type Todo struct {
 	Completed   bool          `json:"completed"`
 }
 
-type CreateTodoRequest struct {
-	UserID      uuid.NullUUID `json:"user_id"`
-	Description string        `json:"description"`
-}
-
-type UpdateTodoRequest struct {
-	Description string `json:"description"`
-	Completed   bool   `json:"completed"`
+type TodoUpdate struct {
+	Description *string `json:"description"`
+	Completed   *bool   `json:"completed"`
 }

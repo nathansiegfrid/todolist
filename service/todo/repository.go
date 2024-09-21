@@ -58,29 +58,92 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 	return todo, nil
 }
 
-func (r *Repository) Create(ctx context.Context, t *CreateTodoRequest) error {
+func (r *Repository) Create(ctx context.Context, todo *Todo) error {
+	todo.ID = uuid.New()
+	todo.UserID, _ = service.UserIDFromContext(ctx)
+
 	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO todo (user_id, description)
-		VALUES ($1, $2)`,
-		t.UserID, t.Description,
+		INSERT INTO todo (id, user_id, description, completed)
+		VALUES ($1, $2, $3, $4)`,
+		todo.ID, todo.UserID, todo.Description, todo.Completed,
 	)
-	// if err != nil {
-	// 	// This check is unnecessary, it's here as template.
-	// 	if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
-	// 		// 23505 is the PostgreSQL error code for unique_violation.
-	// 		return service.ErrConflict("ID", req.ID.String())
-	// 	}
-	// 	return err
-	// }
 	return err
 }
 
-func (r *Repository) Update(ctx context.Context, id uuid.UUID, t *UpdateTodoRequest) error {
-	result, err := r.db.ExecContext(ctx, `
+func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *TodoUpdate) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = updateTodo(ctx, tx, id, update)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = deleteTodo(ctx, tx, id)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func getTodoForUpdate(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*Todo, error) {
+	// FOR UPDATE will lock selected row, which prevents new writes and locks to the same row
+	// before current Tx is done.
+	row := tx.QueryRowContext(ctx, `
+		SELECT id, user_id, description, completed
+		FROM todo
+		WHERE id = $1
+		FOR UPDATE`,
+		id,
+	)
+
+	todo := &Todo{}
+	err := row.Scan(&todo.ID, &todo.UserID, &todo.Description, &todo.Completed)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, service.ErrNotFound(id)
+		}
+		return nil, err
+	}
+	return todo, nil
+}
+
+func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdate) error {
+	todo, err := getTodoForUpdate(ctx, tx, id)
+	if err != nil {
+		return err
+	}
+
+	// Check if resource is owned by other user.
+	userID, _ := service.UserIDFromContext(ctx)
+	if todo.UserID.Valid && userID != todo.UserID {
+		return service.ErrPermission()
+	}
+
+	if v := update.Description; v != nil {
+		todo.Description = *v
+	}
+	if v := update.Completed; v != nil {
+		todo.Completed = *v
+	}
+
+	result, err := tx.ExecContext(ctx, `
 		UPDATE todo
 		SET description = $1, completed = $2
 		WHERE id = $3`,
-		t.Description, t.Completed, id,
+		todo.Description, todo.Completed, id,
 	)
 	if err != nil {
 		return err
@@ -96,8 +159,19 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, t *UpdateTodoRequ
 	return nil
 }
 
-func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
-	result, err := r.db.ExecContext(ctx, "DELETE FROM todo WHERE id = $1", id)
+func deleteTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
+	todo, err := getTodoForUpdate(ctx, tx, id)
+	if err != nil {
+		return err
+	}
+
+	// Check if resource is owned by other user.
+	userID, _ := service.UserIDFromContext(ctx)
+	if todo.UserID.Valid && userID != todo.UserID {
+		return service.ErrPermission()
+	}
+
+	result, err := tx.ExecContext(ctx, "DELETE FROM todo WHERE id = $1", id)
 	if err != nil {
 		return err
 	}

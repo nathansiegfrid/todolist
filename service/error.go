@@ -50,6 +50,10 @@ func ErrValidation(err error) error {
 	return Error(http.StatusBadRequest, err)
 }
 
+func ErrPermission() error {
+	return Error(http.StatusUnauthorized, "permission denied")
+}
+
 func ErrNotFound(id uuid.UUID) error {
 	return Errorf(http.StatusBadRequest, "ID '%s' not found", id)
 }
