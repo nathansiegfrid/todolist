@@ -55,7 +55,7 @@ func (h *Handler) getTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		service.WriteError(w, service.ErrInvalidUUID(idStr))
+		service.WriteError(w, service.ErrInvalidID(idStr))
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		service.WriteError(w, service.ErrInvalidUUID(idStr))
+		service.WriteError(w, service.ErrInvalidID(idStr))
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h *Handler) deleteTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		service.WriteError(w, service.ErrInvalidUUID(idStr))
+		service.WriteError(w, service.ErrInvalidID(idStr))
 		return
 	}
 

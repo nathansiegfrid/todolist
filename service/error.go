@@ -34,14 +34,14 @@ func ErrorStatusCode(err error) int {
 	return http.StatusInternalServerError
 }
 
+// ErrInvalidID is used when the request param is not a valid ID.
+func ErrInvalidID(id string) error {
+	return Errorf(http.StatusBadRequest, "invalid ID '%s'", id)
+}
+
 // ErrInvalidJSON is used when JSON decoder failed to parse the request body.
 func ErrInvalidJSON() error {
 	return Error(http.StatusBadRequest, "invalid request body")
-}
-
-// ErrInvalidUUID is used when the request param is not a valid UUID.
-func ErrInvalidUUID(invalidUUID string) error {
-	return Errorf(http.StatusBadRequest, "invalid UUID '%s'", invalidUUID)
 }
 
 // ErrValidation is used when validation by `ozzo-validation` returns an error.
@@ -55,9 +55,9 @@ func ErrPermission() error {
 }
 
 func ErrNotFound(id uuid.UUID) error {
-	return Errorf(http.StatusBadRequest, "ID '%s' not found", id)
+	return Errorf(http.StatusNotFound, "ID '%s' not found", id)
 }
 
 func ErrConflict(key string, value string) error {
-	return Errorf(http.StatusBadRequest, "%s '%s' already exists", key, value)
+	return Errorf(http.StatusConflict, "%s '%s' already exists", key, value)
 }
