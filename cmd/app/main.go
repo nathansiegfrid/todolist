@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/lmittmann/tint"
 	"github.com/nathansiegfrid/todolist-go/config"
 	"github.com/nathansiegfrid/todolist-go/middleware"
 	"github.com/nathansiegfrid/todolist-go/service/todo"
@@ -25,9 +26,9 @@ func main() {
 	// INIT GLOBAL LOGGER
 	var logger *slog.Logger
 	if *devMode {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+		logger = slog.New(tint.NewHandler(os.Stderr, nil))
 	} else {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	}
 	slog.SetDefault(logger.With("service", *svcName))
 

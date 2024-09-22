@@ -9,6 +9,7 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/jackc/pgx/v5 v5.7.1
 	github.com/joho/godotenv v1.5.1
+	github.com/lmittmann/tint v1.0.5
 	github.com/pressly/goose/v3 v3.22.1
 )
 

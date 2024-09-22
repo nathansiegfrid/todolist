@@ -50,8 +50,9 @@ func ErrValidation(err error) error {
 	return Error(http.StatusBadRequest, err)
 }
 
+// ErrPermission is used when the user does not have enough authorization to do the request.
 func ErrPermission() error {
-	return Error(http.StatusUnauthorized, "permission denied")
+	return Error(http.StatusForbidden, "permission denied")
 }
 
 func ErrNotFound(id uuid.UUID) error {

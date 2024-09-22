@@ -119,7 +119,7 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Validate user input.
 	err = validation.ValidateStruct(update,
-		validation.Field(&update.Description, validation.Required, validation.Length(0, 255)),
+		validation.Field(&update.Description, validation.NilOrNotEmpty, validation.Length(0, 255)),
 	)
 	if err != nil {
 		service.WriteError(w, service.ErrValidation(err))
