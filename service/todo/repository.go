@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/nathansiegfrid/todolist-go/service"
@@ -17,10 +19,37 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db}
 }
 
-func (r *Repository) GetAll(ctx context.Context) ([]*Todo, error) {
+func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, error) {
+	where := []string{"TRUE"}
+	args := []any{}
+	argIndex := 1
+
+	if v := filter.UserID; v != nil {
+		where = append(where, fmt.Sprintf("user_id = $%d", argIndex))
+		args = append(args, *v)
+		argIndex++
+	}
+	if v := filter.Completed; v != nil {
+		where = append(where, fmt.Sprintf("completed = $%d", argIndex))
+		args = append(args, *v)
+		argIndex++
+	}
+
+	var limit, offset string
+	if filter.Limit > 0 {
+		limit = fmt.Sprintf(" LIMIT %d ", filter.Limit)
+	}
+	if filter.Offset > 0 {
+		offset = fmt.Sprintf(" OFFSET %d ", filter.Offset)
+	}
+
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, user_id, description, completed
-		FROM todo`,
+		FROM todo
+		WHERE `+strings.Join(where, " AND ")+`
+		ORDER BY description ASC`+
+		limit+offset,
+		args...,
 	)
 	if err != nil {
 		return nil, err
@@ -64,7 +93,7 @@ func (r *Repository) Create(ctx context.Context, todo *Todo) error {
 
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO todo (id, user_id, description, completed)
-		VALUES ($1, $2, $3, $4)`,
+		VALUES ($, $, $, $)`,
 		todo.ID, todo.UserID, todo.Description, todo.Completed,
 	)
 	return err

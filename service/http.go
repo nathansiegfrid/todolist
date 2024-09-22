@@ -4,7 +4,28 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/gorilla/schema"
 )
+
+// ReadURLQuery maps URL query into struct using `schema` tags.
+func ReadURLQuery[T any](r *http.Request) (*T, error) {
+	dst := new(T)
+	err := schema.NewDecoder().Decode(dst, r.URL.Query())
+	if err != nil {
+		return nil, err
+	}
+	return dst, nil
+}
+
+func ReadJSON[T any](r *http.Request) (*T, error) {
+	dst := new(T)
+	err := json.NewDecoder(r.Body).Decode(dst)
+	if err != nil {
+		return nil, err
+	}
+	return dst, nil
+}
 
 type response struct {
 	Success bool `json:"success"`

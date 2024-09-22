@@ -11,6 +11,13 @@ type Todo struct {
 	Completed   bool          `json:"completed"`
 }
 
+type TodoFilter struct {
+	UserID    *uuid.UUID `schema:"user_id"`
+	Completed *bool      `schema:"completed"`
+	Offset    int        `schema:"offset"`
+	Limit     int        `schema:"limit"`
+}
+
 type TodoUpdate struct {
 	Description *string `json:"description"`
 	Completed   *bool   `json:"completed"`
