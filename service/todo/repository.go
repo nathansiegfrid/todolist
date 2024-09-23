@@ -20,10 +20,13 @@ func NewRepository(db *sql.DB) *Repository {
 }
 
 func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, error) {
-	where := []string{"TRUE"}
-	args := []any{}
-	argIndex := 1
-
+	// Translate filter into WHERE conditions and args.
+	where, args, argIndex := []string{"TRUE"}, []any{}, 1
+	if v := filter.ID; v != nil {
+		where = append(where, fmt.Sprintf("id = $%d", argIndex))
+		args = append(args, *v)
+		argIndex++
+	}
 	if v := filter.UserID; v != nil {
 		where = append(where, fmt.Sprintf("user_id = $%d", argIndex))
 		args = append(args, *v)
@@ -93,7 +96,7 @@ func (r *Repository) Create(ctx context.Context, todo *Todo) error {
 
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO todo (id, user_id, description, completed)
-		VALUES ($, $, $, $)`,
+		VALUES ($1, $2, $3, $4)`,
 		todo.ID, todo.UserID, todo.Description, todo.Completed,
 	)
 	return err

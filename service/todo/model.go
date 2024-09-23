@@ -12,6 +12,7 @@ type Todo struct {
 }
 
 type TodoFilter struct {
+	ID        *uuid.UUID `schema:"id"`
 	UserID    *uuid.UUID `schema:"user_id"`
 	Completed *bool      `schema:"completed"`
 	Offset    int        `schema:"offset"`
