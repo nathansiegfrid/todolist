@@ -18,6 +18,10 @@ func Logger(ctx context.Context) *slog.Logger {
 	return logger
 }
 
+func LogInfo(ctx context.Context, err error) {
+	Logger(ctx).Info(err.Error())
+}
+
 func LogError(ctx context.Context, err error) {
 	Logger(ctx).Error(err.Error())
 }
