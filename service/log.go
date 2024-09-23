@@ -4,16 +4,21 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 // Logger returns the default slog.Logger with additional information from context.Context.
 func Logger(ctx context.Context) *slog.Logger {
+	rid := RequestIDFromContext(ctx)
+	uid := UserIDFromContext(ctx)
+
 	logger := slog.Default()
-	if reqID, ok := RequestIDFromContext(ctx); ok {
-		logger = logger.With("requestID", reqID)
+	if rid != "" {
+		logger = logger.With("request_id", rid)
 	}
-	if userID, ok := UserIDFromContext(ctx); ok {
-		logger = logger.With("userID", userID)
+	if uid != uuid.Nil {
+		logger = logger.With("user_id", uid)
 	}
 	return logger
 }
@@ -27,8 +32,7 @@ func LogError(ctx context.Context, err error) {
 }
 
 func LogInternalError(ctx context.Context, err error) {
-	if ErrorStatusCode(err) != http.StatusInternalServerError {
-		return
+	if ErrorStatusCode(err) == http.StatusInternalServerError {
+		LogError(ctx, err)
 	}
-	LogError(ctx, err)
 }

@@ -92,7 +92,7 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 
 func (r *Repository) Create(ctx context.Context, todo *Todo) error {
 	todo.ID = uuid.New()
-	todo.UserID, _ = service.UserIDFromContext(ctx)
+	todo.UserID = uuid.NullUUID{UUID: service.UserIDFromContext(ctx), Valid: true}
 
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO todo (id, user_id, description, completed)
@@ -158,9 +158,8 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 		return err
 	}
 
-	// Check if resource is owned by other user.
-	userID, _ := service.UserIDFromContext(ctx)
-	if todo.UserID.Valid && userID != todo.UserID {
+	// Check if resource is owned by user.
+	if todo.UserID.UUID != service.UserIDFromContext(ctx) {
 		return service.ErrPermission()
 	}
 
@@ -197,9 +196,8 @@ func deleteTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
 		return err
 	}
 
-	// Check if resource is owned by other user.
-	userID, _ := service.UserIDFromContext(ctx)
-	if todo.UserID.Valid && userID != todo.UserID {
+	// Check if resource is owned by user.
+	if todo.UserID.UUID != service.UserIDFromContext(ctx) {
 		return service.ErrPermission()
 	}
 

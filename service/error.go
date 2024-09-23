@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
 )
 
@@ -46,8 +47,8 @@ func ErrInvalidJSON() error {
 
 // ErrValidation is used when validation by `ozzo-validation` returns an error.
 // Error message from `ozzo-validation` can be marshaled into key-value JSON object.
-func ErrValidation(err error) error {
-	return Error(http.StatusBadRequest, err)
+func ErrValidation(errs validation.Errors) error {
+	return Error(http.StatusBadRequest, errs)
 }
 
 // ErrPermission is used when the user does not have enough authorization to do the request.

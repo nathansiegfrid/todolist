@@ -135,8 +135,7 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 	}
 
 	// Check if resource is owned by user.
-	userID, _ := service.UserIDFromContext(ctx)
-	if userID.UUID != u.ID {
+	if u.ID != service.UserIDFromContext(ctx) {
 		return service.ErrPermission()
 	}
 
