@@ -23,7 +23,7 @@ func Error(statusCode int, message any) error {
 	return &APIError{statusCode, message}
 }
 
-func Errorf(statusCode int, format string, args ...interface{}) error {
+func Errorf(statusCode int, format string, args ...any) error {
 	return &APIError{statusCode, fmt.Sprintf(format, args...)}
 }
 

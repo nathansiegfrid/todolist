@@ -14,6 +14,8 @@ type Config struct {
 	PGDatabase    string
 	PGSSLMode     string
 	PGRootCertLoc string
+
+	JWTSecret string
 }
 
 func Load() (*Config, error) {
@@ -33,6 +35,8 @@ func Load() (*Config, error) {
 		PGDatabase:    env.Mandatory("PG_DATABASE"),
 		PGSSLMode:     env.Optional("PG_SSL_MODE", "disable"),
 		PGRootCertLoc: env.Optional("PG_ROOT_CERT_LOC", ""),
+
+		JWTSecret: env.Mandatory("JWT_SECRET"),
 	}
 
 	// Check for missing or malformed envs.

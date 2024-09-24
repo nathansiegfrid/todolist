@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
@@ -18,13 +19,19 @@ type repository interface {
 	Update(ctx context.Context, id uuid.UUID, update *UserUpdate) error
 }
 
-type Handler struct {
-	repository repository
+type tokenGenerator interface {
+	GenerateToken(userID string, duration time.Duration) (string, error)
 }
 
-func NewHandler(db *sql.DB) *Handler {
+type Handler struct {
+	repository     repository
+	tokenGenerator tokenGenerator
+}
+
+func NewHandler(db *sql.DB, g tokenGenerator) *Handler {
 	return &Handler{
-		repository: NewRepository(db),
+		repository:     NewRepository(db),
+		tokenGenerator: g,
 	}
 }
 
@@ -60,9 +67,23 @@ func (h *Handler) HandleLogin() http.HandlerFunc {
 			return
 		}
 
+		userID := users[0].ID.String()
+		token, err := h.tokenGenerator.GenerateToken(userID, 5*time.Minute)
+		if err != nil {
+			service.LogError(r.Context(), err)
+			service.WriteError(w, err)
+			return
+		}
+		refreshToken, err := h.tokenGenerator.GenerateToken(userID, 72*time.Hour)
+		if err != nil {
+			service.LogError(r.Context(), err)
+			service.WriteError(w, err)
+			return
+		}
+
 		service.WriteJSON(w, &response{
-			Token:        "not_implemented",
-			RefreshToken: "not_implemented",
+			Token:        token,
+			RefreshToken: refreshToken,
 		})
 	}
 }
