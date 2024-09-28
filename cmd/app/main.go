@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -21,6 +25,7 @@ import (
 )
 
 func main() {
+	// These flags are optional and have no effect on services.
 	svcName := flag.String("service-name", "todolist", "Specifies the service name included in log output.")
 	devMode := flag.Bool("development", false, "Output logs in human-readable format instead of JSON.")
 	flag.Parse()
@@ -32,7 +37,8 @@ func main() {
 	} else {
 		logger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	}
-	slog.SetDefault(logger.With("service", *svcName))
+	host, _ := os.Hostname()
+	slog.SetDefault(logger.With("service", *svcName, "host", host))
 
 	// LOAD APPLICATION CONFIG
 	c, err := config.Load()
@@ -106,11 +112,28 @@ func main() {
 		Handler: router,
 	}
 
-	slog.Info(fmt.Sprintf("HTTP server listening on %s", svr.Addr))
-	err = svr.ListenAndServe()
+	go func() {
+		slog.Info(fmt.Sprintf("HTTP server listening on %s", svr.Addr))
+		err := svr.ListenAndServe()
+		if !errors.Is(err, http.ErrServerClosed) {
+			slog.Error(fmt.Sprintf("error running HTTP server: %s", err))
+		}
+	}()
+
+	// Wait for interrupt or terminate signal.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	// Gracefully shut down HTTP server with 10s timeout.
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	slog.Info("shutting down HTTP server...")
+	err = svr.Shutdown(shutdownCtx)
 	if err != nil {
-		slog.Error(fmt.Sprintf("error running HTTP server: %s", err))
+		slog.Error(fmt.Sprintf("error shutting down HTTP server: %s", err))
 		return
 	}
-	// TODO: Implement graceful shutdown!
+	slog.Info("HTTP server shut down gracefully")
 }
