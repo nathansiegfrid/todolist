@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
+	"github.com/gorilla/schema"
 	"github.com/nathansiegfrid/todolist-go/service"
 )
 
@@ -43,7 +44,13 @@ func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) {
 	// Read URL query.
 	filter, err := service.ReadURLQuery[TodoFilter](r)
 	if err != nil {
-		service.LogInfo(r.Context(), err)
+		if valErr, ok := err.(schema.MultiError); ok {
+			service.WriteError(w, service.ErrInvalidURLQuery(valErr))
+		} else {
+			service.LogError(r.Context(), err)
+			service.WriteError(w, err)
+		}
+		return
 	}
 
 	todos, err := h.repository.GetAll(r.Context(), filter)
@@ -84,7 +91,7 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Validate user input.
 	err = validation.ValidateStruct(todo,
-		validation.Field(&todo.Description, validation.Required, validation.Length(0, 255)),
+		validation.Field(&todo.Subject, validation.Required, validation.Length(0, 255)),
 	)
 	if err != nil {
 		if valErr, ok := err.(validation.Errors); ok {
@@ -124,7 +131,7 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Validate user input.
 	err = validation.ValidateStruct(update,
-		validation.Field(&update.Description, validation.NilOrNotEmpty, validation.Length(0, 255)),
+		validation.Field(&update.Subject, validation.NilOrNotEmpty, validation.Length(0, 255)),
 	)
 	if err != nil {
 		if valErr, ok := err.(validation.Errors); ok {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/nathansiegfrid/todolist-go/service"
@@ -32,6 +33,16 @@ func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, e
 		args = append(args, *v)
 		argIndex++
 	}
+	if v := filter.Priority; v != nil {
+		where = append(where, fmt.Sprintf("priority = $%d", argIndex))
+		args = append(args, *v)
+		argIndex++
+	}
+	if v := filter.DueDate; v != nil {
+		where = append(where, fmt.Sprintf("due_date::date = $%d::date", argIndex))
+		args = append(args, v)
+		argIndex++
+	}
 	if v := filter.Completed; v != nil {
 		where = append(where, fmt.Sprintf("completed = $%d", argIndex))
 		args = append(args, *v)
@@ -47,7 +58,7 @@ func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, e
 	}
 
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, user_id, description, completed
+		SELECT id, user_id, subject, description, priority, due_date, completed, created_at, updated_at
 		FROM todo
 		WHERE `+strings.Join(where, " AND ")+`
 		ORDER BY description ASC`+
@@ -62,7 +73,17 @@ func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, e
 	var todos []*Todo
 	for rows.Next() {
 		todo := &Todo{}
-		err := rows.Scan(&todo.ID, &todo.UserID, &todo.Description, &todo.Completed)
+		err := rows.Scan(
+			&todo.ID,
+			&todo.UserID,
+			&todo.Subject,
+			&todo.Description,
+			&todo.Priority,
+			&todo.DueDate,
+			&todo.Completed,
+			&todo.CreatedAt,
+			&todo.UpdatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -73,14 +94,24 @@ func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, e
 
 func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 	row := r.db.QueryRowContext(ctx, `
-		SELECT id, user_id, description, completed
+		SELECT id, user_id, subject, description, priority, due_date, completed, created_at, updated_at
 		FROM todo
 		WHERE id = $1`,
 		id,
 	)
 
 	todo := &Todo{}
-	err := row.Scan(&todo.ID, &todo.UserID, &todo.Description, &todo.Completed)
+	err := row.Scan(
+		&todo.ID,
+		&todo.UserID,
+		&todo.Subject,
+		&todo.Description,
+		&todo.Priority,
+		&todo.DueDate,
+		&todo.Completed,
+		&todo.CreatedAt,
+		&todo.UpdatedAt,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, service.ErrNotFound(id)
@@ -93,11 +124,21 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 func (r *Repository) Create(ctx context.Context, todo *Todo) error {
 	todo.ID = uuid.New()
 	todo.UserID = service.UserIDFromContext(ctx)
+	todo.CreatedAt = time.Now()
+	todo.UpdatedAt = todo.CreatedAt
 
 	_, err := r.db.ExecContext(ctx, `
-		INSERT INTO todo (id, user_id, description, completed)
-		VALUES ($1, $2, $3, $4)`,
-		todo.ID, todo.UserID, todo.Description, todo.Completed,
+		INSERT INTO todo (id, user_id, subject, description, priority, due_date, completed, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+		todo.ID,
+		todo.UserID,
+		todo.Subject,
+		todo.Description,
+		todo.Priority,
+		todo.DueDate,
+		todo.Completed,
+		todo.CreatedAt,
+		todo.UpdatedAt,
 	)
 	return err
 }
@@ -134,7 +175,7 @@ func getTodoForUpdate(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*Todo, err
 	// FOR UPDATE will lock selected row, which prevents new writes and locks to the same row
 	// before current Tx is done.
 	row := tx.QueryRowContext(ctx, `
-		SELECT id, user_id, description, completed
+		SELECT id, user_id, subject, description, priority, due_date, completed, created_at, updated_at
 		FROM todo
 		WHERE id = $1
 		FOR UPDATE`,
@@ -142,7 +183,17 @@ func getTodoForUpdate(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*Todo, err
 	)
 
 	todo := &Todo{}
-	err := row.Scan(&todo.ID, &todo.UserID, &todo.Description, &todo.Completed)
+	err := row.Scan(
+		&todo.ID,
+		&todo.UserID,
+		&todo.Subject,
+		&todo.Description,
+		&todo.Priority,
+		&todo.DueDate,
+		&todo.Completed,
+		&todo.CreatedAt,
+		&todo.UpdatedAt,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, service.ErrNotFound(id)
@@ -163,18 +214,43 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 		return service.ErrPermission()
 	}
 
+	var updated bool
+	if v := update.Subject; v != nil {
+		todo.Subject = *v
+		updated = true
+	}
 	if v := update.Description; v != nil {
 		todo.Description = *v
+		updated = true
+	}
+	if v := update.Priority; v != nil {
+		todo.Priority = *v
+		updated = true
+	}
+	if v := update.DueDate; v != nil {
+		todo.DueDate = *v
+		updated = true
 	}
 	if v := update.Completed; v != nil {
 		todo.Completed = *v
+		updated = true
 	}
+	if !updated {
+		return nil
+	}
+	todo.UpdatedAt = time.Now()
 
 	result, err := tx.ExecContext(ctx, `
 		UPDATE todo
-		SET description = $1, completed = $2
-		WHERE id = $3`,
-		todo.Description, todo.Completed, id,
+		SET subject = $1, description = $2, priority = $3, due_date = $4, completed = $5, updated_at = $6
+		WHERE id = $7`,
+		todo.Subject,
+		todo.Description,
+		todo.Priority,
+		todo.DueDate,
+		todo.Completed,
+		todo.UpdatedAt,
+		id,
 	)
 	if err != nil {
 		return err

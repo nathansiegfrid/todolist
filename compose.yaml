@@ -1,22 +1,20 @@
 services:
-
   backend:
     container_name: todolist
     image: nathansiegfrid/todolist-go
     build: .
-    command:
-    - -service-name=todolist-docker
-    - -development
+    command: ["-service-name=todolist-docker", "-development"]
     ports:
-    - ${API_PORT:-8080}:8080
+      - ${API_PORT:-8080}:8080
     depends_on:
-    - postgres
+      - postgres
     environment:
       PG_HOST: postgres
       PG_PORT: 5432
       PG_USER: app
       PG_PASSWORD: app
       PG_DATABASE: app
+      JWT_SECRET: ${JWT_SECRET}
 
   postgres:
     container_name: postgres

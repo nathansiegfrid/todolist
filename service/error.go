@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
+	"github.com/gorilla/schema"
 )
 
 type APIError struct {
@@ -38,6 +40,15 @@ func ErrorStatusCode(err error) int {
 // ErrInvalidID is used when the request param is not a valid ID.
 func ErrInvalidID(id string) error {
 	return Errorf(http.StatusBadRequest, "invalid ID '%s'", id)
+}
+
+// ErrInvalidURLQuery is used when `gorilla/schema` failed to parse the URL query.
+func ErrInvalidURLQuery(errs schema.MultiError) error {
+	keys := make([]string, 0, len(errs))
+	for k := range errs {
+		keys = append(keys, k)
+	}
+	return Errorf(http.StatusBadRequest, "invalid URL query: %s", strings.Join(keys, ", "))
 }
 
 // ErrInvalidJSON is used when JSON decoder failed to parse the request body.

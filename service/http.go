@@ -4,14 +4,27 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"reflect"
+	"time"
 
 	"github.com/gorilla/schema"
 )
 
 // ReadURLQuery maps URL query into struct using `schema` tags.
+// Supports primitive types, time.Time, and uuid.UUID.
 func ReadURLQuery[T any](r *http.Request) (*T, error) {
+	dec := schema.NewDecoder()
+	// Add custom converter because default decoder doesn't support time.Time.
+	dec.RegisterConverter(time.Time{}, func(value string) reflect.Value {
+		t, err := time.Parse(time.DateOnly, value) // Format: YYYY-MM-DD.
+		if err != nil {
+			return reflect.Value{} // Zero value represents invalid Value and "Invalid" kind.
+		}
+		return reflect.ValueOf(t)
+	})
+
 	dst := new(T)
-	err := schema.NewDecoder().Decode(dst, r.URL.Query())
+	err := dec.Decode(dst, r.URL.Query())
 	if err != nil {
 		return nil, err
 	}
