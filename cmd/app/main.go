@@ -87,6 +87,7 @@ func main() {
 	// ADD SERVICE HANDLERS TO HTTP ROUTER
 	router := chi.NewRouter()
 	router.Use(middleware.Heartbeat("/ping"))
+	router.Use(middleware.CORS)
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 
