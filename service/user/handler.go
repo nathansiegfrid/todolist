@@ -57,13 +57,13 @@ func (h *Handler) HandleLogin() http.HandlerFunc {
 
 		users, err := h.repository.GetAll(r.Context(), &UserFilter{Email: &reqBody.Email, Limit: 1})
 		if err != nil {
-			service.LogInternalError(r.Context(), err)
+			service.LogErrorInternal(r.Context(), err)
 			service.WriteError(w, err)
 			return
 		}
 
 		if len(users) == 0 || !users[0].CheckPassword(reqBody.Password) {
-			service.WriteError(w, service.Error(http.StatusUnauthorized, "incorrect email or password"))
+			service.WriteError(w, service.Error(http.StatusUnauthorized, "Incorrect email or password."))
 			return
 		}
 
@@ -124,7 +124,7 @@ func (h *Handler) HandleRegister() http.HandlerFunc {
 
 		err = h.repository.Create(r.Context(), user)
 		if err != nil {
-			service.LogInternalError(r.Context(), err)
+			service.LogErrorInternal(r.Context(), err)
 			service.WriteError(w, err)
 			return
 		}

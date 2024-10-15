@@ -101,7 +101,7 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
 			// 23505 is the PostgreSQL error code for unique_violation.
-			return service.ErrConflict("email", u.Email)
+			return service.ErrConflict("Email", u.Email)
 		}
 		return err
 	}

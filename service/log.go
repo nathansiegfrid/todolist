@@ -31,7 +31,7 @@ func LogError(ctx context.Context, err error) {
 	Logger(ctx).Error(err.Error())
 }
 
-func LogInternalError(ctx context.Context, err error) {
+func LogErrorInternal(ctx context.Context, err error) {
 	if ErrorStatusCode(err) == http.StatusInternalServerError {
 		LogError(ctx, err)
 	}

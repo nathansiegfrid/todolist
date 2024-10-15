@@ -55,7 +55,7 @@ func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) {
 
 	todos, err := h.repository.GetAll(r.Context(), filter)
 	if err != nil {
-		service.LogInternalError(r.Context(), err)
+		service.LogErrorInternal(r.Context(), err)
 		service.WriteError(w, err)
 		return
 	}
@@ -73,7 +73,7 @@ func (h *Handler) getTodo(w http.ResponseWriter, r *http.Request) {
 
 	todo, err := h.repository.Get(r.Context(), id)
 	if err != nil {
-		service.LogInternalError(r.Context(), err)
+		service.LogErrorInternal(r.Context(), err)
 		service.WriteError(w, err)
 		return
 	}
@@ -105,7 +105,7 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 
 	err = h.repository.Create(r.Context(), todo)
 	if err != nil {
-		service.LogInternalError(r.Context(), err)
+		service.LogErrorInternal(r.Context(), err)
 		service.WriteError(w, err)
 		return
 	}
@@ -145,7 +145,7 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 
 	err = h.repository.Update(r.Context(), id, update)
 	if err != nil {
-		service.LogInternalError(r.Context(), err)
+		service.LogErrorInternal(r.Context(), err)
 		service.WriteError(w, err)
 		return
 	}
@@ -163,7 +163,7 @@ func (h *Handler) deleteTodo(w http.ResponseWriter, r *http.Request) {
 
 	err = h.repository.Delete(r.Context(), id)
 	if err != nil {
-		service.LogInternalError(r.Context(), err)
+		service.LogErrorInternal(r.Context(), err)
 		service.WriteError(w, err)
 		return
 	}

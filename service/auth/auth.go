@@ -40,12 +40,12 @@ func (s *Service) VerifyToken(signedToken string) (jwt.Claims, error) {
 		return s.jwtSecret, nil
 	})
 	if err != nil {
-		return nil, service.Error(http.StatusUnauthorized, "invalid token")
+		return nil, service.Error(http.StatusUnauthorized, "Invalid token.")
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !(ok && token.Valid) {
-		return nil, service.Error(http.StatusUnauthorized, "invalid token")
+		return nil, service.Error(http.StatusUnauthorized, "Invalid token.")
 	}
 	return claims, nil
 }

@@ -40,35 +40,38 @@ func ReadJSON[T any](r *http.Request) (*T, error) {
 	return dst, nil
 }
 
-type response struct {
-	Success bool `json:"success"`
-	Data    any  `json:"data"`
+type responseBody struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+	Data    any    `json:"data,omitempty"`
 }
 
-func write(w http.ResponseWriter, statusCode int, response response) error {
+func write(w http.ResponseWriter, statusCode int, body *responseBody) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	return json.NewEncoder(w).Encode(response)
+	return json.NewEncoder(w).Encode(body)
 }
 
 func WriteOK(w http.ResponseWriter) error {
-	return write(w, http.StatusOK, response{Success: true})
+	return write(w, http.StatusOK, &responseBody{Status: "SUCCESS"})
 }
 
 func WriteJSON(w http.ResponseWriter, data any) error {
-	return write(w, http.StatusOK, response{Success: true, Data: data})
+	return write(w, http.StatusOK, &responseBody{Status: "SUCCESS", Data: data})
 }
 
 func WriteError(w http.ResponseWriter, err error) error {
-	// Default response for internal & unknown errors.
-	statusCode := http.StatusInternalServerError
-	response := response{Success: false, Data: http.StatusText(http.StatusInternalServerError)}
-
 	var apiErr *APIError
 	if errors.As(err, &apiErr) && apiErr.StatusCode != http.StatusInternalServerError {
-		statusCode = apiErr.StatusCode
-		response.Data = apiErr.Message
+		return write(w, apiErr.StatusCode, &responseBody{
+			Status:  "FAIL",
+			Message: apiErr.Message,
+			Data:    apiErr.Data,
+		})
 	}
 
-	return write(w, statusCode, response)
+	return write(w, http.StatusInternalServerError, &responseBody{
+		Status:  "ERROR",
+		Message: "Unexpected error. We've noted the issue. Please try again later.", // Log the error.
+	})
 }
