@@ -131,3 +131,27 @@ func (h *Handler) HandleRegister() http.HandlerFunc {
 		service.WriteOK(w)
 	}
 }
+
+// HandleVerifyAuth returns user info if the request is correctly authenticated.
+// Use with Authenticator middleware.
+func (h *Handler) HandleVerifyAuth() http.HandlerFunc {
+	type response struct {
+		ID    string `json:"id"`
+		Email string `json:"email"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := service.UserIDFromContext(r.Context())
+		user, err := h.repository.Get(r.Context(), userID)
+		if err != nil {
+			service.LogErrorInternal(r.Context(), err)
+			service.WriteError(w, err)
+			return
+		}
+
+		service.WriteJSON(w, &response{
+			ID:    user.ID.String(),
+			Email: user.Email,
+		})
+	}
+}
