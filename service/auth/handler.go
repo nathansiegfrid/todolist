@@ -1,4 +1,4 @@
-package user
+package auth
 
 import (
 	"context"
@@ -28,10 +28,10 @@ type Handler struct {
 	tokenGenerator tokenGenerator
 }
 
-func NewHandler(db *sql.DB, g tokenGenerator) *Handler {
+func NewHandler(db *sql.DB, tokenGenerator tokenGenerator) *Handler {
 	return &Handler{
 		repository:     NewRepository(db),
-		tokenGenerator: g,
+		tokenGenerator: tokenGenerator,
 	}
 }
 

@@ -20,7 +20,6 @@ import (
 	"github.com/nathansiegfrid/todolist-go/middleware"
 	"github.com/nathansiegfrid/todolist-go/service/auth"
 	"github.com/nathansiegfrid/todolist-go/service/todo"
-	"github.com/nathansiegfrid/todolist-go/service/user"
 	"github.com/pressly/goose/v3"
 )
 
@@ -93,14 +92,14 @@ func main() {
 
 	router.Route("/api/v1", func(router chi.Router) {
 		// Add public routes.
-		authService := auth.NewService([]byte(c.JWTSecret))
-		userHandler := user.NewHandler(db, authService)
-		router.Post("/login", userHandler.HandleLogin())
-		router.Post("/register", userHandler.HandleRegister())
+		jwtService := auth.NewJWTService([]byte(c.JWTSecret))
+		authHandler := auth.NewHandler(db, jwtService)
+		router.Post("/login", authHandler.HandleLogin())
+		router.Post("/register", authHandler.HandleRegister())
 
 		// Add private routes.
 		router.Group(func(router chi.Router) {
-			router.Use(middleware.Authenticator(authService))
+			router.Use(middleware.Authenticator(jwtService))
 
 			todoHandler := todo.NewHandler(db)
 			router.Mount("/todo", todoHandler.HTTPHandler())

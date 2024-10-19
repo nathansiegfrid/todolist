@@ -13,7 +13,7 @@ type tokenVerifier interface {
 	VerifyToken(signedToken string) (jwt.Claims, error)
 }
 
-func Authenticator(v tokenVerifier) func(http.Handler) http.Handler {
+func Authenticator(tokenVerifier tokenVerifier) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -30,7 +30,7 @@ func Authenticator(v tokenVerifier) func(http.Handler) http.Handler {
 			}
 
 			// Validate the token and extract the claims.
-			claims, err := v.VerifyToken(token)
+			claims, err := tokenVerifier.VerifyToken(token)
 			if err != nil {
 				service.WriteError(w, service.Error(http.StatusUnauthorized, "Invalid token."))
 				return

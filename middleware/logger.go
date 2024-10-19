@@ -25,7 +25,7 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 	w.wroteHeader = true
 }
 
-// Logger should be used after RequestID and Authentication middlewares.
+// Logger should be used after RequestID and Authenticator middlewares.
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Add request ID and user ID to logs.

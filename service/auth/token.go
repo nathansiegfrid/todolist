@@ -9,15 +9,15 @@ import (
 	"github.com/nathansiegfrid/todolist-go/service"
 )
 
-type Service struct {
-	jwtSecret []byte
+type JWTService struct {
+	secret []byte
 }
 
-func NewService(jwtSecret []byte) *Service {
-	return &Service{jwtSecret}
+func NewJWTService(secret []byte) *JWTService {
+	return &JWTService{secret}
 }
 
-func (s *Service) GenerateToken(userID string, duration time.Duration) (string, error) {
+func (s *JWTService) GenerateToken(userID string, duration time.Duration) (string, error) {
 	claims := &jwt.RegisteredClaims{
 		Subject:   userID,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
@@ -25,19 +25,19 @@ func (s *Service) GenerateToken(userID string, duration time.Duration) (string, 
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString(s.jwtSecret)
+	signedToken, err := token.SignedString(s.secret)
 	if err != nil {
 		return "", err
 	}
 	return signedToken, nil
 }
 
-func (s *Service) VerifyToken(signedToken string) (jwt.Claims, error) {
+func (s *JWTService) VerifyToken(signedToken string) (jwt.Claims, error) {
 	token, err := jwt.ParseWithClaims(signedToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return s.jwtSecret, nil
+		return s.secret, nil
 	})
 	if err != nil {
 		return nil, service.Error(http.StatusUnauthorized, "Invalid token.")
