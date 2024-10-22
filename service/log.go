@@ -13,14 +13,9 @@ func Logger(ctx context.Context) *slog.Logger {
 	rid := RequestIDFromContext(ctx)
 	uid := UserIDFromContext(ctx)
 
-	logger := slog.Default()
-	if rid != "" {
-		logger = logger.With("request_id", rid)
-	}
-	if uid != uuid.Nil {
-		logger = logger.With("user_id", uid)
-	}
-	return logger
+	return slog.Default().
+		With("request_id", rid).
+		With("user_id", uuid.NullUUID{UUID: uid, Valid: uid != uuid.Nil})
 }
 
 func LogInfo(ctx context.Context, err error) {

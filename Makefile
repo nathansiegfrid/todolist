@@ -6,7 +6,7 @@ endif
 
 # GO COMMANDS
 run:
-	go run ./cmd/app -development -service-name=todolist-local
+	go run ./cmd/app -development -service=todolist-local
 update:
 	go get -u -t ./...
 	go mod tidy
@@ -25,7 +25,7 @@ docker-build:
 	docker build -t nathansiegfrid/todolist-go .
 docker-push:
 	docker push nathansiegfrid/todolist-go
-compose-up:
+docker-up:
 	docker compose up -d --build
-compose-down:
+docker-down:
 	docker compose down

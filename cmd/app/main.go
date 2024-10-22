@@ -25,7 +25,7 @@ import (
 
 func main() {
 	// These flags are optional and have no effect on services.
-	svcName := flag.String("service-name", "todolist", "Specifies the service name included in log output.")
+	svcName := flag.String("service", "todolist", "Specifies the service name included in log output.")
 	devMode := flag.Bool("development", false, "Output logs in human-readable format instead of JSON.")
 	flag.Parse()
 
@@ -62,14 +62,12 @@ func main() {
 	slog.Info("verifying database connection...")
 	start, sleep, timeout := time.Now(), time.Second, 30*time.Second
 	for {
-		err := db.Ping()
-		if err == nil {
+		if err := db.Ping(); err == nil {
 			slog.Info("connected to database")
 			break
-		}
-		if time.Since(start) > timeout {
+		} else if time.Since(start) > timeout {
 			slog.Error(fmt.Sprintf("error verifying database connection: %s", err))
-			return
+			return // Exit if timeout reached.
 		}
 		time.Sleep(sleep)
 		sleep *= 2
@@ -77,8 +75,7 @@ func main() {
 
 	// RUN DATABASE MIGRATIONS
 	// Goose supports out of order migration with "allow missing" option.
-	err = goose.Up(db, "migration", goose.WithAllowMissing())
-	if err != nil {
+	if err := goose.Up(db, "migration", goose.WithAllowMissing()); err != nil {
 		slog.Error(fmt.Sprintf("error running database migrations: %s", err))
 		return
 	}
@@ -115,8 +112,7 @@ func main() {
 
 	go func() {
 		slog.Info(fmt.Sprintf("HTTP server listening on %s", svr.Addr))
-		err := svr.ListenAndServe()
-		if !errors.Is(err, http.ErrServerClosed) {
+		if err := svr.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			slog.Error(fmt.Sprintf("error running HTTP server: %s", err))
 		}
 	}()
@@ -126,13 +122,12 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	// Gracefully shut down HTTP server with 10s timeout.
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownCancel()
+	// GRACEFUL SHUTDOWN
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	slog.Info("shutting down HTTP server...")
-	err = svr.Shutdown(shutdownCtx)
-	if err != nil {
+	if err := svr.Shutdown(ctx); err != nil {
 		slog.Error(fmt.Sprintf("error shutting down HTTP server: %s", err))
 		return
 	}
