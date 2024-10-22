@@ -7,7 +7,7 @@ CREATE TABLE "todo"
     "subject" VARCHAR(255) NOT NULL,
     "description" VARCHAR(255) NOT NULL DEFAULT '',
     "priority" INT NOT NULL DEFAULT 0,
-    "due_date" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "due_date" TIMESTAMPTZ,
     "completed" BOOLEAN NOT NULL DEFAULT FALSE,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()

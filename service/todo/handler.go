@@ -131,7 +131,10 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 
 	// Validate user input.
 	err = validation.ValidateStruct(update,
-		validation.Field(&update.Subject, validation.NilOrNotEmpty, validation.Length(0, 255)),
+		validation.Field(&update.Subject, service.NewOptionalValidator[string](
+			validation.NilOrNotEmpty,
+			validation.Length(0, 255)),
+		),
 	)
 	if err != nil {
 		if valErr, ok := err.(validation.Errors); ok {

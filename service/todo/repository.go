@@ -23,29 +23,33 @@ func NewRepository(db *sql.DB) *Repository {
 func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, error) {
 	// Translate filter into WHERE conditions and args.
 	where, args, argIndex := []string{"TRUE"}, []any{}, 1
-	if v := filter.ID; v != nil {
+	if v := filter.ID; v.Defined {
 		where = append(where, fmt.Sprintf("id = $%d", argIndex))
-		args = append(args, *v)
+		args = append(args, v.Value)
 		argIndex++
 	}
-	if v := filter.UserID; v != nil {
+	if v := filter.UserID; v.Defined {
 		where = append(where, fmt.Sprintf("user_id = $%d", argIndex))
-		args = append(args, *v)
+		args = append(args, v.Value)
 		argIndex++
 	}
-	if v := filter.Priority; v != nil {
+	if v := filter.Priority; v.Defined {
 		where = append(where, fmt.Sprintf("priority = $%d", argIndex))
-		args = append(args, *v)
+		args = append(args, v.Value)
 		argIndex++
 	}
-	if v := filter.DueDate; v != nil {
-		where = append(where, fmt.Sprintf("due_date::date = $%d::date", argIndex))
-		args = append(args, v)
-		argIndex++
+	if v := filter.DueDate; v.Defined {
+		if v.Value == nil {
+			where = append(where, "due_date IS NULL")
+		} else {
+			where = append(where, fmt.Sprintf("due_date::date = $%d::date", argIndex))
+			args = append(args, v.Value)
+			argIndex++
+		}
 	}
-	if v := filter.Completed; v != nil {
+	if v := filter.Completed; v.Defined {
 		where = append(where, fmt.Sprintf("completed = $%d", argIndex))
-		args = append(args, *v)
+		args = append(args, v.Value)
 		argIndex++
 	}
 
@@ -215,24 +219,24 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 	}
 
 	var updated bool
-	if v := update.Subject; v != nil {
-		todo.Subject = *v
+	if v := update.Subject; v.Defined {
+		todo.Subject = v.Value
 		updated = true
 	}
-	if v := update.Description; v != nil {
-		todo.Description = *v
+	if v := update.Description; v.Defined {
+		todo.Description = v.Value
 		updated = true
 	}
-	if v := update.Priority; v != nil {
-		todo.Priority = *v
+	if v := update.Priority; v.Defined {
+		todo.Priority = v.Value
 		updated = true
 	}
-	if v := update.DueDate; v != nil {
-		todo.DueDate = *v
+	if v := update.DueDate; v.Defined {
+		todo.DueDate = v.Value
 		updated = true
 	}
-	if v := update.Completed; v != nil {
-		todo.Completed = *v
+	if v := update.Completed; v.Defined {
+		todo.Completed = v.Value
 		updated = true
 	}
 	if !updated {
