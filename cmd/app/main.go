@@ -19,6 +19,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/nathansiegfrid/todolist-go/config"
 	"github.com/nathansiegfrid/todolist-go/middleware"
+	"github.com/nathansiegfrid/todolist-go/service"
 	"github.com/nathansiegfrid/todolist-go/service/auth"
 	"github.com/nathansiegfrid/todolist-go/service/todo"
 	"github.com/pressly/goose/v3"
@@ -115,10 +116,12 @@ func main() {
 
 	// Change default 404 and 405 handlers.
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Page not found.", http.StatusNotFound)
+		err := service.Error(http.StatusNotFound, "Resource not found.")
+		service.WriteError(w, err)
 	})
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Method not allowed.", http.StatusMethodNotAllowed)
+		err := service.Error(http.StatusMethodNotAllowed, "Method not allowed.")
+		service.WriteError(w, err)
 	})
 
 	// RUN HTTP SERVER

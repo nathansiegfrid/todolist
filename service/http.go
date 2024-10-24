@@ -119,7 +119,8 @@ func (hmap MethodHandler) HandlerFunc() http.HandlerFunc {
 		if serveHTTP == nil {
 			// If no handler found, return 405 Method Not Allowed.
 			w.Header().Set("Allow", allowHeaderValue)
-			http.Error(w, "Method not allowed.", http.StatusMethodNotAllowed)
+			err := Error(http.StatusMethodNotAllowed, "Method not allowed.")
+			WriteError(w, err)
 			return
 		}
 		serveHTTP(w, r)
