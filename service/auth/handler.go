@@ -35,7 +35,19 @@ func NewHandler(db *sql.DB, tokenGenerator tokenGenerator) *Handler {
 	}
 }
 
-func (h *Handler) HandleLogin() http.HandlerFunc {
+func (h *Handler) HandleLoginRoute() http.HandlerFunc {
+	return service.MethodHandler{"POST": h.handleLogin()}.HandlerFunc()
+}
+
+func (h *Handler) HandleRegisterRoute() http.HandlerFunc {
+	return service.MethodHandler{"POST": h.handleRegister()}.HandlerFunc()
+}
+
+func (h *Handler) HandleVerifyAuthRoute() http.HandlerFunc {
+	return service.MethodHandler{"GET": h.handleVerifyAuth()}.HandlerFunc()
+}
+
+func (h *Handler) handleLogin() http.HandlerFunc {
 	type request struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -88,7 +100,7 @@ func (h *Handler) HandleLogin() http.HandlerFunc {
 	}
 }
 
-func (h *Handler) HandleRegister() http.HandlerFunc {
+func (h *Handler) handleRegister() http.HandlerFunc {
 	type request struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -134,7 +146,7 @@ func (h *Handler) HandleRegister() http.HandlerFunc {
 
 // HandleVerifyAuth returns user info if the request is correctly authenticated.
 // Use with Authenticator middleware.
-func (h *Handler) HandleVerifyAuth() http.HandlerFunc {
+func (h *Handler) handleVerifyAuth() http.HandlerFunc {
 	type response struct {
 		ID    string `json:"id"`
 		Email string `json:"email"`

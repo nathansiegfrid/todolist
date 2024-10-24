@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/gorilla/schema"
@@ -74,4 +75,53 @@ func WriteError(w http.ResponseWriter, err error) error {
 		Status:  "ERROR",
 		Message: "Unexpected error. We've noted the issue. Please try again later.", // Log the error.
 	})
+}
+
+// MethodHandler maps HTTP methods to handler functions.
+type MethodHandler map[string]http.HandlerFunc
+
+func (hmap MethodHandler) HandlerFunc() http.HandlerFunc {
+	// Define HTTP methods that can be used as keys in MethodHandler.
+	// Unknown keys will return false by default.
+	validKeys := map[string]bool{
+		"GET":     true,
+		"HEAD":    true,
+		"POST":    true,
+		"PUT":     true,
+		"PATCH":   true,
+		"DELETE":  true,
+		"CONNECT": false,
+		"OPTIONS": false,
+		"TRACE":   false,
+	}
+
+	// Get list of allowed methods.
+	methods := make([]string, 0, len(hmap)+1)
+	methods = append(methods, "OPTIONS")
+	for k, v := range hmap {
+		// Check if method is valid and handler not nil.
+		if validKeys[k] && v != nil {
+			methods = append(methods, k)
+		} else {
+			delete(hmap, k)
+		}
+	}
+	allowHeaderValue := strings.Join(methods, ", ")
+
+	// Implement OPTIONS method to handle preflight requests.
+	hmap["OPTIONS"] = func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Allow", allowHeaderValue)
+		w.WriteHeader(http.StatusNoContent)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		serveHTTP := hmap[r.Method]
+		if serveHTTP == nil {
+			// If no handler found, return 405 Method Not Allowed.
+			w.Header().Set("Allow", allowHeaderValue)
+			http.Error(w, "Method not allowed.", http.StatusMethodNotAllowed)
+			return
+		}
+		serveHTTP(w, r)
+	}
 }

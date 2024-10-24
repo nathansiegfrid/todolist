@@ -28,6 +28,12 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 // Logger should be used after RequestID and Authenticator middlewares.
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip logging for OPTIONS requests.
+		if r.Method == "OPTIONS" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Add request ID and user ID to logs.
 		logger := service.Logger(r.Context())
 

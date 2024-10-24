@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
 	"github.com/gorilla/schema"
@@ -30,14 +29,19 @@ func NewHandler(db *sql.DB) *Handler {
 	}
 }
 
-func (h *Handler) HTTPHandler() http.Handler {
-	r := chi.NewRouter()
-	r.Get("/", h.getAllTodos)
-	r.Get("/{id}", h.getTodo)
-	r.Post("/", h.createTodo)
-	r.Patch("/{id}", h.updateTodo)
-	r.Delete("/{id}", h.deleteTodo)
-	return r
+func (h *Handler) HandleTodoRoute() http.HandlerFunc {
+	return service.MethodHandler{
+		"GET":  h.getAllTodos,
+		"POST": h.createTodo,
+	}.HandlerFunc()
+}
+
+func (h *Handler) HandleTodoIDRoute() http.HandlerFunc {
+	return service.MethodHandler{
+		"GET":    h.getTodo,
+		"PATCH":  h.updateTodo,
+		"DELETE": h.deleteTodo,
+	}.HandlerFunc()
 }
 
 func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) {

@@ -97,18 +97,26 @@ func main() {
 		// Add public routes.
 		jwtService := auth.NewJWTService([]byte(c.JWTSecret))
 		authHandler := auth.NewHandler(db, jwtService)
-		router.Post("/login", authHandler.HandleLogin())
-		router.Post("/register", authHandler.HandleRegister())
+		router.Handle("/login", authHandler.HandleLoginRoute())
+		router.Handle("/register", authHandler.HandleRegisterRoute())
 
 		// Add private routes.
 		router.Group(func(router chi.Router) {
 			router.Use(middleware.Authenticator(jwtService))
-			router.Get("/verify-auth", authHandler.HandleVerifyAuth())
+			router.Handle("/verify-auth", authHandler.HandleVerifyAuthRoute())
 
 			todoHandler := todo.NewHandler(db)
-			router.Handle("/todo", todoHandler.HandleTodo())
-			router.Handle("/todo/{id}", todoHandler.HandleTodoID())
+			router.Handle("/todo", todoHandler.HandleTodoRoute())
+			router.Handle("/todo/{id}", todoHandler.HandleTodoIDRoute())
 		})
+	})
+
+	// Change default 404 and 405 handlers.
+	router.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Page not found.", http.StatusNotFound)
+	})
+	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "Method not allowed.", http.StatusMethodNotAllowed)
 	})
 
 	// RUN HTTP SERVER
