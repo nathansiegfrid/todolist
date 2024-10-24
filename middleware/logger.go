@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"runtime/debug"
@@ -25,7 +26,7 @@ func (w *responseWriter) WriteHeader(statusCode int) {
 	w.wroteHeader = true
 }
 
-// Logger should be used after RequestID and Authenticator middlewares.
+// Logger should be used after RequestID and VerifyAuth middlewares.
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip logging for OPTIONS requests.
@@ -34,27 +35,30 @@ func Logger(next http.Handler) http.Handler {
 			return
 		}
 
-		// Add request ID and user ID to logs.
+		// Logger adds request ID and user ID from context.
 		logger := service.Logger(r.Context())
+		// Use wrapper to get HTTP status code.
+		ww := &responseWriter{ResponseWriter: w}
+		start := time.Now()
 
-		// Recover and log panics.
 		defer func() {
+			// Recover panics.
 			if err := recover(); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				// Log error and stack trace.
 				logger.Error(fmt.Sprintf("panic: %s", err), "trace", string(debug.Stack()))
+				// Respond with 500 Internal Server Error.
+				service.WriteError(ww, errors.New("unknown error"))
 			}
+
+			logger.Info(
+				fmt.Sprintf("response: %d %s", ww.statusCode, http.StatusText(ww.statusCode)),
+				"status", ww.statusCode,
+				"method", r.Method,
+				"path", r.URL.EscapedPath(),
+				"duration", time.Since(start),
+			)
 		}()
 
-		start := time.Now()
-		ww := &responseWriter{ResponseWriter: w} // Use wrapper to get HTTP status code.
 		next.ServeHTTP(ww, r)
-
-		logger.Info(
-			fmt.Sprintf("response: %d %s", ww.statusCode, http.StatusText(ww.statusCode)),
-			"status", ww.statusCode,
-			"method", r.Method,
-			"path", r.URL.EscapedPath(),
-			"duration", time.Since(start),
-		)
 	})
 }
