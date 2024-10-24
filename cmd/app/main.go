@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/lmittmann/tint"
 	"github.com/nathansiegfrid/todolist-go/config"
@@ -83,7 +84,12 @@ func main() {
 	// ADD SERVICE HANDLERS TO HTTP ROUTER
 	router := chi.NewRouter()
 	router.Use(middleware.Heartbeat("/ping"))
-	router.Use(middleware.CORS)
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"},
+		AllowedHeaders:   []string{"Authorization"},
+		AllowCredentials: true,
+	}))
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 
@@ -100,7 +106,8 @@ func main() {
 			router.Get("/verify-auth", authHandler.HandleVerifyAuth())
 
 			todoHandler := todo.NewHandler(db)
-			router.Mount("/todo", todoHandler.HTTPHandler())
+			router.Handle("/todo", todoHandler.HandleTodo())
+			router.Handle("/todo/{id}", todoHandler.HandleTodoID())
 		})
 	})
 
