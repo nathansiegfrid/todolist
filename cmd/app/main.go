@@ -81,6 +81,11 @@ func main() {
 		return
 	}
 
+	// INIT SERVICES
+	jwtService := auth.NewJWTService([]byte(c.JWTSecret))
+	authHandler := auth.NewHandler(db, jwtService)
+	todoHandler := todo.NewHandler(db)
+
 	// ADD SERVICE HANDLERS TO HTTP ROUTER
 	router := chi.NewRouter()
 	router.Use(middleware.Heartbeat("/ping"))
@@ -91,21 +96,18 @@ func main() {
 		AllowCredentials: true,
 	}))
 	router.Use(middleware.RequestID)
+	router.Use(middleware.VerifyAuth(jwtService))
 	router.Use(middleware.Logger)
 
 	router.Route("/api/v1", func(router chi.Router) {
 		// Add public routes.
-		jwtService := auth.NewJWTService([]byte(c.JWTSecret))
-		authHandler := auth.NewHandler(db, jwtService)
 		router.Handle("/login", authHandler.HandleLoginRoute())
 		router.Handle("/register", authHandler.HandleRegisterRoute())
 
 		// Add private routes.
 		router.Group(func(router chi.Router) {
-			router.Use(middleware.Authenticator(jwtService))
+			router.Use(middleware.RequireAuth)
 			router.Handle("/verify-auth", authHandler.HandleVerifyAuthRoute())
-
-			todoHandler := todo.NewHandler(db)
 			router.Handle("/todo", todoHandler.HandleTodoRoute())
 			router.Handle("/todo/{id}", todoHandler.HandleTodoIDRoute())
 		})
