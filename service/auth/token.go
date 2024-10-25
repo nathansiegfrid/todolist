@@ -17,9 +17,9 @@ func NewJWTService(secret []byte) *JWTService {
 	return &JWTService{secret}
 }
 
-func (s *JWTService) GenerateToken(userID string, duration time.Duration) (string, error) {
+func (s *JWTService) GenerateToken(subject string, duration time.Duration) (string, error) {
 	claims := &jwt.RegisteredClaims{
-		Subject:   userID,
+		Subject:   subject,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
@@ -32,7 +32,7 @@ func (s *JWTService) GenerateToken(userID string, duration time.Duration) (strin
 	return signedToken, nil
 }
 
-func (s *JWTService) VerifyToken(signedToken string) (jwt.Claims, error) {
+func (s *JWTService) VerifyToken(signedToken string) (string, error) {
 	token, err := jwt.ParseWithClaims(signedToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -40,12 +40,19 @@ func (s *JWTService) VerifyToken(signedToken string) (jwt.Claims, error) {
 		return s.secret, nil
 	})
 	if err != nil {
-		return nil, service.Error(http.StatusUnauthorized, "Invalid token.")
+		return "", service.Error(http.StatusUnauthorized, "Token is invalid.")
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !(ok && token.Valid) {
-		return nil, service.Error(http.StatusUnauthorized, "Invalid token.")
+		return "", service.Error(http.StatusUnauthorized, "Token is invalid.")
 	}
-	return claims, nil
+
+	exp, _ := claims.GetExpirationTime() // Error value is always nil.
+	if time.Now().After(exp.Time) {
+		return "", service.Error(http.StatusUnauthorized, "Token is expired.")
+	}
+
+	sub, _ := claims.GetSubject() // Error value is always nil.
+	return sub, nil
 }

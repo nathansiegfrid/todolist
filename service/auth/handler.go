@@ -20,7 +20,7 @@ type repository interface {
 }
 
 type tokenGenerator interface {
-	GenerateToken(userID string, duration time.Duration) (string, error)
+	GenerateToken(subject string, duration time.Duration) (string, error)
 }
 
 type Handler struct {

@@ -4,9 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/nathansiegfrid/todolist-go/service"
 )
@@ -14,7 +12,7 @@ import (
 type tokenErrorContextKey struct{}
 
 type tokenVerifier interface {
-	VerifyToken(signedToken string) (jwt.Claims, error)
+	VerifyToken(signedToken string) (string, error)
 }
 
 // VerifyAuth middleware verifies the Authorization header and extracts user ID from the token.
@@ -22,33 +20,24 @@ func VerifyAuth(tokenVerifier tokenVerifier) func(http.Handler) http.Handler {
 	verifyRequest := func(r *http.Request) (uuid.UUID, error) {
 		authHeaderValue := r.Header.Get("Authorization")
 		if authHeaderValue == "" {
-			return uuid.Nil, service.Error(http.StatusUnauthorized, "Missing authorization header.")
+			return uuid.Nil, service.Error(http.StatusUnauthorized, "Authorization header not found.")
 		}
 
 		// Check if Authorization header has "Bearer" prefix and extract the token.
 		token := strings.TrimPrefix(authHeaderValue, "Bearer ")
 		if token == authHeaderValue {
-			return uuid.Nil, service.Error(http.StatusUnauthorized, "Invalid authorization header.")
+			return uuid.Nil, service.Error(http.StatusUnauthorized, "Authorization header is not a Bearer token.")
 		}
 
-		// Validate the token and extract the claims.
-		claims, err := tokenVerifier.VerifyToken(token)
+		// Verify the token and extract the subject.
+		sub, err := tokenVerifier.VerifyToken(token)
 		if err != nil {
-			return uuid.Nil, service.Error(http.StatusUnauthorized, "Invalid token.")
+			return uuid.Nil, service.Error(http.StatusUnauthorized, err.Error())
 		}
 
-		// Check if token is expired.
-		exp, _ := claims.GetExpirationTime()
-		if time.Now().After(exp.Time) {
-			// TODO: Add a way to refresh the token. Maybe a separate API endpoint?
-			return uuid.Nil, service.Error(http.StatusUnauthorized, "Token is expired.")
-		}
-
-		// Get user ID from subject.
-		sub, _ := claims.GetSubject()
 		uid, _ := uuid.Parse(sub)
 		if uid == uuid.Nil {
-			return uuid.Nil, service.Error(http.StatusUnauthorized, "User ID not found in token.")
+			return uuid.Nil, service.Error(http.StatusUnauthorized, "Token subject is not a valid UUID.")
 		}
 		return uid, nil
 	}
