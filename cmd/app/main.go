@@ -99,6 +99,7 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.VerifyAuth(jwtService))
 	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
 
 	router.Route("/api/v1", func(router chi.Router) {
 		// Add public routes.
