@@ -16,7 +16,6 @@ func RequestID(next http.Handler) http.Handler {
 			reqID = uuid.New().String()
 			r.Header.Set(requestIDHeader, reqID)
 		}
-
 		ctx := service.ContextWithRequestID(r.Context(), reqID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

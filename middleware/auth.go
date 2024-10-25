@@ -76,6 +76,13 @@ func RequireAuth(next http.Handler) http.Handler {
 			service.WriteError(w, err)
 			return
 		}
+		// TODO: Add permission-based authorization.
+		// 0 = no access
+		// 1 = read access
+		// 2 = read-create access
+		// 3 = read-create-update-delete access
+		// 4 = admin access (grant/revoke access to non-admin users)
+		// 5 = owner access (grant/revoke access, change owner)
 		next.ServeHTTP(w, r)
 	})
 }

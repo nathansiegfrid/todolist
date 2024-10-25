@@ -3,7 +3,6 @@ services:
     container_name: todolist
     image: nathansiegfrid/todolist-go
     build: .
-    command: ["-development", "-service=todolist-local"]
     ports:
       - ${API_PORT:-8080}:8080
     depends_on:

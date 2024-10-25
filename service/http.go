@@ -99,7 +99,7 @@ func (hmap MethodHandler) HandlerFunc() http.HandlerFunc {
 	methods := make([]string, 0, len(hmap)+1)
 	methods = append(methods, "OPTIONS")
 	for k, v := range hmap {
-		// Check if method is valid and handler not nil.
+		// Check if method is valid and handler is not nil.
 		if validKeys[k] && v != nil {
 			methods = append(methods, k)
 		} else {
@@ -117,12 +117,21 @@ func (hmap MethodHandler) HandlerFunc() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP := hmap[r.Method]
 		if serveHTTP == nil {
-			// If no handler found, return 405 Method Not Allowed.
+			// If no handler found, respond with 405 Method Not Allowed.
 			w.Header().Set("Allow", allowHeaderValue)
-			err := Error(http.StatusMethodNotAllowed, "Method not allowed.")
-			WriteError(w, err)
+			MethodNotAllowed(w, r)
 			return
 		}
 		serveHTTP(w, r)
 	}
+}
+
+func NotFound(w http.ResponseWriter, _ *http.Request) {
+	err := Error(http.StatusNotFound, "Resource not found.")
+	WriteError(w, err)
+}
+
+func MethodNotAllowed(w http.ResponseWriter, _ *http.Request) {
+	err := Error(http.StatusMethodNotAllowed, "Method not allowed.")
+	WriteError(w, err)
 }
