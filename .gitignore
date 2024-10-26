@@ -18,6 +18,9 @@ go.work.sum
 # env file
 .env
 
+# Air - Live reload for Go apps
+tmp/
+
 # JetBrains IDEs
 .idea/
 cmake-build-*/

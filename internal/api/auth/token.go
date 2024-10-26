@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nathansiegfrid/todolist-go/service"
+	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
 type JWTService struct {
@@ -40,17 +40,17 @@ func (s *JWTService) VerifyToken(signedToken string) (string, error) {
 		return s.secret, nil
 	})
 	if err != nil {
-		return "", service.Error(http.StatusUnauthorized, "Token is invalid.")
+		return "", api.Error(http.StatusUnauthorized, "Token is invalid.")
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !(ok && token.Valid) {
-		return "", service.Error(http.StatusUnauthorized, "Token is invalid.")
+		return "", api.Error(http.StatusUnauthorized, "Token is invalid.")
 	}
 
 	exp, _ := claims.GetExpirationTime() // Error value is always nil.
 	if time.Now().After(exp.Time) {
-		return "", service.Error(http.StatusUnauthorized, "Token is expired.")
+		return "", api.Error(http.StatusUnauthorized, "Token is expired.")
 	}
 
 	sub, _ := claims.GetSubject() // Error value is always nil.

@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/nathansiegfrid/todolist-go/service"
+	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
 type Repository struct {
@@ -80,7 +80,7 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*User, error) {
 	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, service.ErrNotFound(id)
+			return nil, api.ErrNotFound(id)
 		}
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
 			// 23505 is the PostgreSQL error code for unique_violation.
-			return service.ErrConflict("Email", u.Email)
+			return api.ErrConflict("Email", u.Email)
 		}
 		return err
 	}
@@ -129,14 +129,14 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 	err = row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return service.ErrNotFound(id)
+			return api.ErrNotFound(id)
 		}
 		return err
 	}
 
 	// Check if resource is owned by user.
-	if u.ID != service.UserIDFromContext(ctx) {
-		return service.ErrPermission()
+	if u.ID != api.UserIDFromContext(ctx) {
+		return api.ErrPermission()
 	}
 
 	// Apply patch update.
@@ -168,7 +168,7 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 		return err
 	}
 	if rowsAffected == 0 {
-		return service.ErrNotFound(id)
+		return api.ErrNotFound(id)
 	}
 
 	return tx.Commit()

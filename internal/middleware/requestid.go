@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist-go/service"
+	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
 const requestIDHeader = "X-Request-ID"
@@ -16,7 +16,7 @@ func RequestID(next http.Handler) http.Handler {
 			reqID = uuid.New().String()
 			r.Header.Set(requestIDHeader, reqID)
 		}
-		ctx := service.ContextWithRequestID(r.Context(), reqID)
+		ctx := api.ContextWithRequestID(r.Context(), reqID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

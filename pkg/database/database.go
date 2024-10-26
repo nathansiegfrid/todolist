@@ -8,6 +8,8 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+const retryConnectTimeout = 10 * time.Second
+
 func Connect(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -18,9 +20,11 @@ func Connect(dsn string) (*sql.DB, error) {
 	start := time.Now()
 	sleep := time.Second
 	for {
-		if err := db.Ping(); err == nil {
+		err := db.Ping()
+		if err == nil {
 			return db, nil
-		} else if time.Since(start) > 20*time.Second {
+		}
+		if time.Since(start) > retryConnectTimeout {
 			return nil, fmt.Errorf("error verifying database connection: %w", err)
 		}
 		time.Sleep(sleep)

@@ -9,7 +9,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist-go/service"
+	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
 type repository interface {
@@ -20,7 +20,7 @@ type repository interface {
 }
 
 type tokenGenerator interface {
-	GenerateToken(subject string, duration time.Duration) (string, error)
+	GenerateToken(subject string, duration time.Duration) (signedToken string, err error)
 }
 
 type Handler struct {
@@ -36,15 +36,15 @@ func NewHandler(db *sql.DB, tokenGenerator tokenGenerator) *Handler {
 }
 
 func (h *Handler) HandleLoginRoute() http.HandlerFunc {
-	return service.MethodHandler{"POST": h.handleLogin()}.HandlerFunc()
+	return api.MethodHandler{"POST": h.handleLogin()}.HandlerFunc()
 }
 
 func (h *Handler) HandleRegisterRoute() http.HandlerFunc {
-	return service.MethodHandler{"POST": h.handleRegister()}.HandlerFunc()
+	return api.MethodHandler{"POST": h.handleRegister()}.HandlerFunc()
 }
 
 func (h *Handler) HandleVerifyAuthRoute() http.HandlerFunc {
-	return service.MethodHandler{"GET": h.handleVerifyAuth()}.HandlerFunc()
+	return api.MethodHandler{"GET": h.handleVerifyAuth()}.HandlerFunc()
 }
 
 func (h *Handler) handleLogin() http.HandlerFunc {
@@ -60,41 +60,41 @@ func (h *Handler) handleLogin() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read request body.
-		reqBody, err := service.ReadJSON[request](r)
+		reqBody, err := api.ReadJSON[request](r)
 		if err != nil {
-			service.LogInfo(r.Context(), err)
-			service.WriteError(w, service.ErrInvalidJSON())
+			api.LogInfo(r.Context(), err)
+			api.WriteError(w, api.ErrInvalidJSON())
 			return
 		}
 
 		users, err := h.repository.GetAll(r.Context(), &UserFilter{Email: &reqBody.Email, Limit: 1})
 		if err != nil {
-			service.LogErrorInternal(r.Context(), err)
-			service.WriteError(w, err)
+			api.LogErrorInternal(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
 
 		if len(users) == 0 || !users[0].CheckPassword(reqBody.Password) {
-			err := service.Error(http.StatusUnauthorized, "Incorrect email or password.")
-			service.WriteError(w, err)
+			err := api.Error(http.StatusUnauthorized, "Incorrect email or password.")
+			api.WriteError(w, err)
 			return
 		}
 
 		userID := users[0].ID.String()
 		token, err := h.tokenGenerator.GenerateToken(userID, 5*time.Minute)
 		if err != nil {
-			service.LogError(r.Context(), err)
-			service.WriteError(w, err)
+			api.LogError(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
 		refreshToken, err := h.tokenGenerator.GenerateToken(userID, 72*time.Hour)
 		if err != nil {
-			service.LogError(r.Context(), err)
-			service.WriteError(w, err)
+			api.LogError(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
 
-		service.WriteJSON(w, &response{
+		api.WriteJSON(w, &response{
 			Token:        token,
 			RefreshToken: refreshToken,
 		})
@@ -109,10 +109,10 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read request body.
-		reqBody, err := service.ReadJSON[request](r)
+		reqBody, err := api.ReadJSON[request](r)
 		if err != nil {
-			service.LogInfo(r.Context(), err)
-			service.WriteError(w, service.ErrInvalidJSON())
+			api.LogInfo(r.Context(), err)
+			api.WriteError(w, api.ErrInvalidJSON())
 			return
 		}
 
@@ -123,10 +123,10 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 		)
 		if err != nil {
 			if valErr, ok := err.(validation.Errors); ok {
-				service.WriteError(w, service.ErrValidation(valErr))
+				api.WriteError(w, api.ErrValidation(valErr))
 			} else {
-				service.LogError(r.Context(), err)
-				service.WriteError(w, err)
+				api.LogError(r.Context(), err)
+				api.WriteError(w, err)
 			}
 			return
 		}
@@ -137,11 +137,11 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 
 		err = h.repository.Create(r.Context(), user)
 		if err != nil {
-			service.LogErrorInternal(r.Context(), err)
-			service.WriteError(w, err)
+			api.LogErrorInternal(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
-		service.WriteOK(w)
+		api.WriteOK(w)
 	}
 }
 
@@ -154,15 +154,15 @@ func (h *Handler) handleVerifyAuth() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		userID := service.UserIDFromContext(r.Context())
+		userID := api.UserIDFromContext(r.Context())
 		user, err := h.repository.Get(r.Context(), userID)
 		if err != nil {
-			service.LogErrorInternal(r.Context(), err)
-			service.WriteError(w, err)
+			api.LogErrorInternal(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
 
-		service.WriteJSON(w, &response{
+		api.WriteJSON(w, &response{
 			ID:    user.ID.String(),
 			Email: user.Email,
 		})

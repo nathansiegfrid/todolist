@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist-go/service"
+	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
 type Repository struct {
@@ -118,7 +118,7 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, service.ErrNotFound(id)
+			return nil, api.ErrNotFound(id)
 		}
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 
 func (r *Repository) Create(ctx context.Context, todo *Todo) error {
 	todo.ID = uuid.New()
-	todo.UserID = service.UserIDFromContext(ctx)
+	todo.UserID = api.UserIDFromContext(ctx)
 	todo.CreatedAt = time.Now()
 	todo.UpdatedAt = todo.CreatedAt
 
@@ -200,7 +200,7 @@ func getTodoForUpdate(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*Todo, err
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, service.ErrNotFound(id)
+			return nil, api.ErrNotFound(id)
 		}
 		return nil, err
 	}
@@ -214,8 +214,8 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 	}
 
 	// Check if resource is owned by user.
-	if todo.UserID != service.UserIDFromContext(ctx) {
-		return service.ErrPermission()
+	if todo.UserID != api.UserIDFromContext(ctx) {
+		return api.ErrPermission()
 	}
 
 	var updated bool
@@ -246,15 +246,16 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 
 	result, err := tx.ExecContext(ctx, `
 		UPDATE todo
-		SET subject = $1, description = $2, priority = $3, due_date = $4, completed = $5, updated_at = $6
-		WHERE id = $7`,
+		SET subject = $2, description = $3, priority = $4, due_date = $5, completed = $6, updated_at = $7
+		WHERE id = $1`,
+		id,
 		todo.Subject,
 		todo.Description,
 		todo.Priority,
 		todo.DueDate,
 		todo.Completed,
 		todo.UpdatedAt,
-		id,
+		todo.ID,
 	)
 	if err != nil {
 		return err
@@ -265,7 +266,7 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 		return err
 	}
 	if rowsAffected == 0 {
-		return service.ErrNotFound(id)
+		return api.ErrNotFound(id)
 	}
 	return nil
 }
@@ -277,8 +278,8 @@ func deleteTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
 	}
 
 	// Check if resource is owned by user.
-	if todo.UserID != service.UserIDFromContext(ctx) {
-		return service.ErrPermission()
+	if todo.UserID != api.UserIDFromContext(ctx) {
+		return api.ErrPermission()
 	}
 
 	result, err := tx.ExecContext(ctx, "DELETE FROM todo WHERE id = $1", id)
@@ -291,7 +292,7 @@ func deleteTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return service.ErrNotFound(id)
+		return api.ErrNotFound(id)
 	}
 	return nil
 }

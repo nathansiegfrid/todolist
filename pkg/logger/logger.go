@@ -1,21 +1,22 @@
 package logger
 
 import (
+	"io"
 	"log/slog"
-	"os"
 
 	"github.com/lmittmann/tint"
 )
 
-// Setup configures the global standard logger.
+// SetDefaultSlog configures the global standard logger.
 // This will affect all log output from `log` and `slog` package.
-func Setup(json bool) {
+func SetDefaultSlog(w io.Writer, json bool) {
 	var handler slog.Handler
 	if json {
-		handler = slog.NewJSONHandler(os.Stderr, nil)
+		handler = slog.NewJSONHandler(w, nil)
 	} else {
 		// Colored human-readable output.
-		handler = tint.NewHandler(os.Stderr, nil)
+		handler = tint.NewHandler(w, nil)
 	}
-	slog.SetDefault(slog.New(handler))
+	slogger := slog.New(handler)
+	slog.SetDefault(slogger)
 }

@@ -11,8 +11,14 @@ import (
 	"time"
 )
 
+const gracefulShutdownTimeout = 10 * time.Second
+
+// ListenAndServe starts an HTTP server and with graceful shutdown.
 func ListenAndServe(addr string, router http.Handler) {
-	svr := http.Server{Addr: addr, Handler: router}
+	svr := http.Server{
+		Addr:    addr,
+		Handler: router,
+	}
 
 	// Create a context that listens for interrupt/terminate signals.
 	signalCtx, signalCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -31,7 +37,7 @@ func ListenAndServe(addr string, router http.Handler) {
 	<-signalCtx.Done()
 
 	// Set timeout for graceful shutdown.
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 20*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
 	defer shutdownCancel()
 
 	slog.Info("shutting down HTTP server...")

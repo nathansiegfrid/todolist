@@ -1,4 +1,4 @@
-module github.com/nathansiegfrid/todolist-go
+module github.com/nathansiegfrid/todolist
 
 go 1.23
 

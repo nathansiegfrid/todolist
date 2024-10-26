@@ -6,25 +6,25 @@ endif
 
 # GO COMMANDS
 run:
-	go run ./cmd/app
+	air || go run .
 update:
 	go get -u -t ./...
 	go mod tidy
 
 # DB MIGRATION COMMANDS
-DB_STRING=postgres://$(PG_USER):$(PG_PASSWORD)@$(PG_HOST):$(PG_PORT)/$(PG_DATABASE)?sslmode=$(PG_SSL_MODE)
+DB_STRING=postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSL_MODE)
 db-up:
-	goose -dir migration postgres "$(DB_STRING)" up
+	goose -dir migrations postgres "$(DB_STRING)" up
 db-down:
-	goose -dir migration postgres "$(DB_STRING)" down
-db-reset:
-	goose -dir migration postgres "$(DB_STRING)" reset
+	goose -dir migrations postgres "$(DB_STRING)" down
+db-redo:
+	goose -dir migrations postgres "$(DB_STRING)" redo
 
 # DOCKER COMMANDS
 docker-build:
-	docker build -t nathansiegfrid/todolist-go .
+	docker build -t nathansiegfrid/todolist .
 docker-push:
-	docker push nathansiegfrid/todolist-go
+	docker push nathansiegfrid/todolist
 docker-up:
 	docker compose up -d --build
 docker-down:

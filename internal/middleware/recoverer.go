@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/nathansiegfrid/todolist-go/service"
+	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
 // Recoverer recovers from panics and logs the error.
@@ -16,9 +16,9 @@ func Recoverer(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				// Log with request ID and user ID from context.
-				service.Logger(r.Context()).Error(fmt.Sprintf("panic: %s", err), "trace", string(debug.Stack()))
+				api.Logger(r.Context()).Error(fmt.Sprintf("panic: %s", err), "trace", string(debug.Stack()))
 				// Respond with 500 Internal Server Error.
-				service.WriteError(w, errors.New("unknown error"))
+				api.WriteError(w, errors.New("unknown error"))
 			}
 		}()
 		next.ServeHTTP(w, r)

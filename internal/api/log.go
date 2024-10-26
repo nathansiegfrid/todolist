@@ -1,7 +1,8 @@
-package service
+package api
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -18,16 +19,16 @@ func Logger(ctx context.Context) *slog.Logger {
 		With("user_id", uuid.NullUUID{UUID: uid, Valid: uid != uuid.Nil})
 }
 
-func LogInfo(ctx context.Context, err error) {
-	Logger(ctx).Info(err.Error())
+func LogInfo(ctx context.Context, msg any) {
+	Logger(ctx).Info(fmt.Sprintf("%s", msg))
 }
 
-func LogError(ctx context.Context, err error) {
-	Logger(ctx).Error(err.Error())
+func LogError(ctx context.Context, msg any) {
+	Logger(ctx).Error(fmt.Sprintf("%s", msg))
 }
 
 func LogErrorInternal(ctx context.Context, err error) {
-	if ErrorStatusCode(err) == http.StatusInternalServerError {
+	if err != nil && ErrorStatusCode(err) == http.StatusInternalServerError {
 		LogError(ctx, err)
 	}
 }

@@ -1,18 +1,18 @@
 services:
   backend:
     container_name: todolist
-    image: nathansiegfrid/todolist-go
+    image: nathansiegfrid/todolist
     build: .
     ports:
       - ${API_PORT:-8080}:8080
     depends_on:
       - postgres
     environment:
-      PG_HOST: postgres
-      PG_PORT: 5432
-      PG_USER: app
-      PG_PASSWORD: app
-      PG_DATABASE: app
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
       JWT_SECRET: ${JWT_SECRET}
 
   postgres:

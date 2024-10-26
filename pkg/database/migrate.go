@@ -9,7 +9,7 @@ import (
 
 func Migrate(db *sql.DB, path string) error {
 	if err := goose.Up(db, path); err != nil {
-		return fmt.Errorf("error migrating database: %w", err)
+		return fmt.Errorf("error running migrations: %w", err)
 	}
 	return nil
 }
