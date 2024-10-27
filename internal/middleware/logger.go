@@ -46,7 +46,7 @@ func Logger(next http.Handler) http.Handler {
 
 		// Log with request ID and user ID from context.
 		api.Logger(r.Context()).Info(
-			fmt.Sprintf("response: %d %s", ww.statusCode, http.StatusText(ww.statusCode)),
+			fmt.Sprintf("API response: %d %s", ww.statusCode, http.StatusText(ww.statusCode)),
 			"status", ww.statusCode,
 			"method", r.Method,
 			"path", r.URL.EscapedPath(),

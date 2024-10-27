@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"log/slog"
+	"runtime/debug"
 
 	"github.com/google/uuid"
 )
@@ -26,6 +27,6 @@ func LogError(ctx context.Context, err error) {
 		Logger(ctx).Info(err.Error())
 	} else {
 		// ERROR level logs, requires investigation/intervention.
-		Logger(ctx).Error(err.Error())
+		Logger(ctx).Error(err.Error(), "trace", string(debug.Stack()))
 	}
 }

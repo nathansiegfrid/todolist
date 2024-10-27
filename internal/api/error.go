@@ -19,7 +19,7 @@ type ErrorResponse struct {
 
 // Error implements the `error` interface.
 func (e ErrorResponse) Error() string {
-	return fmt.Sprintf("API error %d: %s", e.StatusCode, e.Message)
+	return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.Message)
 }
 
 func Error(statusCode int, message string) error {
