@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -12,20 +13,24 @@ func (hmap MethodHandler) HandlerFunc() http.HandlerFunc {
 	// Define HTTP methods that can be used as keys in MethodHandler.
 	// Unknown keys will return false by default.
 	validKeys := map[string]bool{
-		"GET":     true,
 		"HEAD":    true,
+		"GET":     true,
 		"POST":    true,
 		"PUT":     true,
 		"PATCH":   true,
 		"DELETE":  true,
-		"CONNECT": false,
 		"OPTIONS": false,
+		"CONNECT": false,
 		"TRACE":   false,
 	}
 
+	// If HEAD handler is not defined, use GET handler.
+	if hmap["HEAD"] == nil {
+		hmap["HEAD"] = hmap["GET"]
+	}
+
 	// Get list of allowed methods.
-	methods := make([]string, 0, len(hmap)+1)
-	methods = append(methods, "OPTIONS")
+	methods := make([]string, 0, len(hmap))
 	for k, v := range hmap {
 		// Check if method is valid and handler is not nil.
 		if validKeys[k] && v != nil {
@@ -34,13 +39,8 @@ func (hmap MethodHandler) HandlerFunc() http.HandlerFunc {
 			delete(hmap, k)
 		}
 	}
+	sort.Strings(methods) // Unnecessary, but makes it consistent across app restarts.
 	allowHeaderValue := strings.Join(methods, ", ")
-
-	// Implement OPTIONS method to handle preflight requests.
-	hmap["OPTIONS"] = func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Allow", allowHeaderValue)
-		w.WriteHeader(http.StatusNoContent)
-	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		serveHTTP := hmap[r.Method]
