@@ -7,7 +7,6 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
-	"github.com/gorilla/schema"
 	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
@@ -48,12 +47,9 @@ func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) {
 	// Read URL query.
 	filter, err := api.ReadURLQuery[TodoFilter](r)
 	if err != nil {
-		if valErr, ok := err.(schema.MultiError); ok {
-			api.WriteError(w, api.ErrInvalidURLQuery(valErr))
-		} else {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-		}
+		err := api.ErrInvalidURLQuery(err)
+		api.LogErrorInternal(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 
@@ -94,16 +90,13 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user input.
-	err = validation.ValidateStruct(todo,
-		validation.Field(&todo.Subject, validation.Required, validation.Length(0, 255)),
-	)
-	if err != nil {
-		if valErr, ok := err.(validation.Errors); ok {
-			api.WriteError(w, api.ErrValidation(valErr))
-		} else {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-		}
+	if err := validation.ValidateStruct(todo,
+		validation.Field(&todo.Subject, validation.Required, validation.Length(0, 100)),
+		validation.Field(&todo.Description, validation.Length(0, 1000)),
+	); err != nil {
+		err := api.ErrValidation(err)
+		api.LogErrorInternal(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 
@@ -134,19 +127,13 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate user input.
-	err = validation.ValidateStruct(update,
-		validation.Field(&update.Subject, api.NewOptionalValidator[string](
-			validation.NilOrNotEmpty,
-			validation.Length(0, 255)),
-		),
-	)
-	if err != nil {
-		if valErr, ok := err.(validation.Errors); ok {
-			api.WriteError(w, api.ErrValidation(valErr))
-		} else {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-		}
+	if err := validation.ValidateStruct(update,
+		validation.Field(&update.Subject, validation.NilOrNotEmpty, validation.Length(0, 100)),
+		validation.Field(&update.Description, validation.Length(0, 1000)),
+	); err != nil {
+		err := api.ErrValidation(err)
+		api.LogErrorInternal(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 

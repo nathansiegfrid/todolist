@@ -25,31 +25,31 @@ func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, e
 	where, args, argIndex := []string{"TRUE"}, []any{}, 1
 	if v := filter.ID; v.Defined {
 		where = append(where, fmt.Sprintf("id = $%d", argIndex))
-		args = append(args, v.Value)
+		args = append(args, v.Data)
 		argIndex++
 	}
 	if v := filter.UserID; v.Defined {
 		where = append(where, fmt.Sprintf("user_id = $%d", argIndex))
-		args = append(args, v.Value)
+		args = append(args, v.Data)
 		argIndex++
 	}
 	if v := filter.Priority; v.Defined {
 		where = append(where, fmt.Sprintf("priority = $%d", argIndex))
-		args = append(args, v.Value)
+		args = append(args, v.Data)
 		argIndex++
 	}
 	if v := filter.DueDate; v.Defined {
-		if v.Value == nil {
+		if v.Data == nil {
 			where = append(where, "due_date IS NULL")
 		} else {
 			where = append(where, fmt.Sprintf("due_date::date = $%d::date", argIndex))
-			args = append(args, v.Value)
+			args = append(args, v.Data)
 			argIndex++
 		}
 	}
 	if v := filter.Completed; v.Defined {
 		where = append(where, fmt.Sprintf("completed = $%d", argIndex))
-		args = append(args, v.Value)
+		args = append(args, v.Data)
 		argIndex++
 	}
 
@@ -220,23 +220,23 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 
 	var updated bool
 	if v := update.Subject; v.Defined {
-		todo.Subject = v.Value
+		todo.Subject = v.Data
 		updated = true
 	}
 	if v := update.Description; v.Defined {
-		todo.Description = v.Value
+		todo.Description = v.Data
 		updated = true
 	}
 	if v := update.Priority; v.Defined {
-		todo.Priority = v.Value
+		todo.Priority = v.Data
 		updated = true
 	}
 	if v := update.DueDate; v.Defined {
-		todo.DueDate = v.Value
+		todo.DueDate = v.Data
 		updated = true
 	}
 	if v := update.Completed; v.Defined {
-		todo.Completed = v.Value
+		todo.Completed = v.Data
 		updated = true
 	}
 	if !updated {

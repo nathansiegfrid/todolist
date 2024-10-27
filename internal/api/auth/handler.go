@@ -117,17 +117,13 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 		}
 
 		// Validate user input.
-		err = validation.ValidateStruct(reqBody,
+		if err := validation.ValidateStruct(reqBody,
 			validation.Field(&reqBody.Email, validation.Required, is.Email),
 			validation.Field(&reqBody.Password, validation.Required, validation.Length(8, 0)),
-		)
-		if err != nil {
-			if valErr, ok := err.(validation.Errors); ok {
-				api.WriteError(w, api.ErrValidation(valErr))
-			} else {
-				api.LogError(r.Context(), err)
-				api.WriteError(w, err)
-			}
+		); err != nil {
+			err := api.ErrValidation(err)
+			api.LogErrorInternal(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
 

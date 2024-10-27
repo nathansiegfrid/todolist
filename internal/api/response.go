@@ -27,7 +27,7 @@ func WriteJSON(w http.ResponseWriter, data any) error {
 }
 
 func WriteError(w http.ResponseWriter, err error) error {
-	var apiErr *APIError
+	var apiErr APIError
 	if errors.As(err, &apiErr) && apiErr.StatusCode != http.StatusInternalServerError {
 		return write(w, apiErr.StatusCode, &responseBody{
 			Status:  "FAIL",

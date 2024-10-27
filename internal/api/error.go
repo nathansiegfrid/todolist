@@ -18,20 +18,20 @@ type APIError struct {
 }
 
 // Error implements the `error` interface.
-func (e *APIError) Error() string {
+func (e APIError) Error() string {
 	return fmt.Sprintf("API error %d: %s", e.StatusCode, e.Message)
 }
 
 func Error(statusCode int, message string) error {
-	return &APIError{StatusCode: statusCode, Message: message}
+	return APIError{StatusCode: statusCode, Message: message}
 }
 
 func Errorf(statusCode int, format string, args ...any) error {
-	return &APIError{StatusCode: statusCode, Message: fmt.Sprintf(format, args...)}
+	return APIError{StatusCode: statusCode, Message: fmt.Sprintf(format, args...)}
 }
 
 func ErrorStatusCode(err error) int {
-	var apiErr *APIError
+	var apiErr APIError
 	if errors.As(err, &apiErr) {
 		return apiErr.StatusCode
 	}
@@ -44,12 +44,18 @@ func ErrInvalidID(id string) error {
 }
 
 // ErrInvalidURLQuery is used when `gorilla/schema` failed to parse the URL query.
-func ErrInvalidURLQuery(errs schema.MultiError) error {
-	keys := make([]string, 0, len(errs))
-	for k := range errs {
-		keys = append(keys, k)
+// Error value from `gorilla/schema` contains the keys that failed to be parsed.
+func ErrInvalidURLQuery(err error) error {
+	var errs schema.MultiError
+	if errors.As(err, &errs) {
+		// The multi error value doesn't make sense, so only the keys are returned.
+		keys := make([]string, 0, len(errs))
+		for k := range errs {
+			keys = append(keys, k)
+		}
+		return Errorf(http.StatusBadRequest, "Invalid URL query: %s.", strings.Join(keys, ", "))
 	}
-	return Errorf(http.StatusBadRequest, "Invalid URL query: %s.", strings.Join(keys, ", "))
+	return err // Internal server error.
 }
 
 // ErrInvalidJSON is used when JSON decoder failed to parse the request body.
@@ -59,12 +65,16 @@ func ErrInvalidJSON() error {
 
 // ErrValidation is used when validation by `ozzo-validation` returns an error.
 // Error value from `ozzo-validation` can be marshaled into key-value JSON object.
-func ErrValidation(errs validation.Errors) error {
-	return &APIError{
-		StatusCode: http.StatusBadRequest,
-		Message:    "Invalid input value.",
-		Data:       errs,
+func ErrValidation(err error) error {
+	var valErr validation.Errors
+	if errors.As(err, &valErr) {
+		return APIError{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Invalid input value.",
+			Data:       valErr,
+		}
 	}
+	return err // Internal server error.
 }
 
 // ErrPermission is used when the user does not have enough authorization to do the request.
