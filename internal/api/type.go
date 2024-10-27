@@ -12,6 +12,10 @@ type Optional[T any] struct {
 	Defined bool `schema:"-"`
 }
 
+func NewOptional[T any](data T) Optional[T] {
+	return Optional[T]{Data: data, Defined: true}
+}
+
 // UnmarshalJSON implements the `json.Unmarshaler` interface.
 func (t *Optional[T]) UnmarshalJSON(data []byte) error {
 	t.Defined = true

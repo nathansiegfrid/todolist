@@ -7,14 +7,26 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/schema"
 )
+
+// ReadID reads {id} from URL path and parses it into uuid.UUID.
+// Its centralized here to allow easy modifications if the routing library changes.
+func ReadID(r *http.Request) (uuid.UUID, error) {
+	idStr := r.PathValue("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return uuid.Nil, ErrInvalidID(idStr)
+	}
+	return id, nil
+}
 
 func ReadJSON[T any](r *http.Request) (*T, error) {
 	dst := new(T)
 	err := json.NewDecoder(r.Body).Decode(dst)
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidJSON()
 	}
 	return dst, nil
 }
@@ -25,7 +37,7 @@ func ReadURLQuery[T any](r *http.Request) (*T, error) {
 	dst := new(T)
 	err := decodeURLQuery(r.URL.Query(), dst)
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidURLQuery(err)
 	}
 	return dst, nil
 }

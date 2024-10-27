@@ -6,6 +6,10 @@ import (
 	"net/http"
 )
 
+// responseBody standardizes the response format.
+// Status is either "SUCCESS", "FAIL", or "ERROR".
+// Status "FAIL" is used for client errors.
+// Status "ERROR" is used for server errors.
 type responseBody struct {
 	Status  string `json:"status"`
 	Message string `json:"message,omitempty"`
@@ -27,12 +31,12 @@ func WriteJSON(w http.ResponseWriter, data any) error {
 }
 
 func WriteError(w http.ResponseWriter, err error) error {
-	var apiErr APIError
-	if errors.As(err, &apiErr) && apiErr.StatusCode != http.StatusInternalServerError {
-		return write(w, apiErr.StatusCode, &responseBody{
+	var res ErrorResponse
+	if errors.As(err, &res) && res.StatusCode != http.StatusInternalServerError {
+		return write(w, res.StatusCode, &responseBody{
 			Status:  "FAIL",
-			Message: apiErr.Message,
-			Data:    apiErr.Data,
+			Message: res.Message,
+			Data:    res.Data,
 		})
 	}
 

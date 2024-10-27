@@ -62,20 +62,21 @@ func (h *Handler) handleLogin() http.HandlerFunc {
 		// Read request body.
 		reqBody, err := api.ReadJSON[request](r)
 		if err != nil {
-			api.LogInfo(r.Context(), err)
-			api.WriteError(w, api.ErrInvalidJSON())
+			api.LogError(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
 
 		users, err := h.repository.GetAll(r.Context(), &UserFilter{Email: &reqBody.Email, Limit: 1})
 		if err != nil {
-			api.LogErrorInternal(r.Context(), err)
+			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
 		}
 
 		if len(users) == 0 || !users[0].CheckPassword(reqBody.Password) {
 			err := api.Error(http.StatusUnauthorized, "Incorrect email or password.")
+			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
 		}
@@ -111,8 +112,8 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 		// Read request body.
 		reqBody, err := api.ReadJSON[request](r)
 		if err != nil {
-			api.LogInfo(r.Context(), err)
-			api.WriteError(w, api.ErrInvalidJSON())
+			api.LogError(r.Context(), err)
+			api.WriteError(w, err)
 			return
 		}
 
@@ -122,7 +123,7 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 			validation.Field(&reqBody.Password, validation.Required, validation.Length(8, 0)),
 		); err != nil {
 			err := api.ErrValidation(err)
-			api.LogErrorInternal(r.Context(), err)
+			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
 		}
@@ -133,7 +134,7 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 
 		err = h.repository.Create(r.Context(), user)
 		if err != nil {
-			api.LogErrorInternal(r.Context(), err)
+			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
 		}
@@ -153,7 +154,7 @@ func (h *Handler) handleVerifyAuth() http.HandlerFunc {
 		userID := api.UserIDFromContext(r.Context())
 		user, err := h.repository.Get(r.Context(), userID)
 		if err != nil {
-			api.LogErrorInternal(r.Context(), err)
+			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
 		}

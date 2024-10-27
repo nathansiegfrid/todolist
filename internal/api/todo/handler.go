@@ -47,15 +47,14 @@ func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) {
 	// Read URL query.
 	filter, err := api.ReadURLQuery[TodoFilter](r)
 	if err != nil {
-		err := api.ErrInvalidURLQuery(err)
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}
 
 	todos, err := h.repository.GetAll(r.Context(), filter)
 	if err != nil {
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}
@@ -63,17 +62,17 @@ func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getTodo(w http.ResponseWriter, r *http.Request) {
-	// Read request param.
-	idStr := r.PathValue("id")
-	id, err := uuid.Parse(idStr)
+	// Read request param "id".
+	id, err := api.ReadID(r)
 	if err != nil {
-		api.WriteError(w, api.ErrInvalidID(idStr))
+		api.LogError(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 
 	todo, err := h.repository.Get(r.Context(), id)
 	if err != nil {
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}
@@ -84,8 +83,8 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 	// Read request body.
 	todo, err := api.ReadJSON[Todo](r)
 	if err != nil {
-		api.LogInfo(r.Context(), err)
-		api.WriteError(w, api.ErrInvalidJSON())
+		api.LogError(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 
@@ -95,14 +94,14 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 		validation.Field(&todo.Description, validation.Length(0, 1000)),
 	); err != nil {
 		err := api.ErrValidation(err)
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}
 
 	err = h.repository.Create(r.Context(), todo)
 	if err != nil {
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}
@@ -110,19 +109,19 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
-	// Read request param.
-	idStr := r.PathValue("id")
-	id, err := uuid.Parse(idStr)
+	// Read request param "id".
+	id, err := api.ReadID(r)
 	if err != nil {
-		api.WriteError(w, api.ErrInvalidID(idStr))
+		api.LogError(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 
 	// Read request body.
 	update, err := api.ReadJSON[TodoUpdate](r)
 	if err != nil {
-		api.LogInfo(r.Context(), err)
-		api.WriteError(w, api.ErrInvalidJSON())
+		api.LogError(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 
@@ -132,14 +131,14 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 		validation.Field(&update.Description, validation.Length(0, 1000)),
 	); err != nil {
 		err := api.ErrValidation(err)
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}
 
 	err = h.repository.Update(r.Context(), id, update)
 	if err != nil {
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}
@@ -147,17 +146,17 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) deleteTodo(w http.ResponseWriter, r *http.Request) {
-	// Read request param.
-	idStr := r.PathValue("id")
-	id, err := uuid.Parse(idStr)
+	// Read request param "id".
+	id, err := api.ReadID(r)
 	if err != nil {
-		api.WriteError(w, api.ErrInvalidID(idStr))
+		api.LogError(r.Context(), err)
+		api.WriteError(w, err)
 		return
 	}
 
 	err = h.repository.Delete(r.Context(), id)
 	if err != nil {
-		api.LogErrorInternal(r.Context(), err)
+		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
 	}

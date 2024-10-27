@@ -11,27 +11,27 @@ import (
 	"github.com/gorilla/schema"
 )
 
-type APIError struct {
+type ErrorResponse struct {
 	StatusCode int
 	Message    string
 	Data       any
 }
 
 // Error implements the `error` interface.
-func (e APIError) Error() string {
+func (e ErrorResponse) Error() string {
 	return fmt.Sprintf("API error %d: %s", e.StatusCode, e.Message)
 }
 
 func Error(statusCode int, message string) error {
-	return APIError{StatusCode: statusCode, Message: message}
+	return ErrorResponse{StatusCode: statusCode, Message: message}
 }
 
 func Errorf(statusCode int, format string, args ...any) error {
-	return APIError{StatusCode: statusCode, Message: fmt.Sprintf(format, args...)}
+	return ErrorResponse{StatusCode: statusCode, Message: fmt.Sprintf(format, args...)}
 }
 
 func ErrorStatusCode(err error) int {
-	var apiErr APIError
+	var apiErr ErrorResponse
 	if errors.As(err, &apiErr) {
 		return apiErr.StatusCode
 	}
@@ -68,7 +68,7 @@ func ErrInvalidJSON() error {
 func ErrValidation(err error) error {
 	var valErr validation.Errors
 	if errors.As(err, &valErr) {
-		return APIError{
+		return ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    "Invalid input value.",
 			Data:       valErr,
