@@ -255,7 +255,6 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 		todo.DueDate,
 		todo.Completed,
 		todo.UpdatedAt,
-		todo.ID,
 	)
 	if err != nil {
 		return err
