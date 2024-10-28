@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
 	"github.com/nathansiegfrid/todolist/internal/api"
 	"github.com/nathansiegfrid/todolist/internal/api/auth"
 	"github.com/nathansiegfrid/todolist/internal/api/todo"
@@ -50,16 +49,11 @@ func main() {
 	router.NotFound(api.NotFound)
 	router.MethodNotAllowed(api.MethodNotAllowed)
 	router.Use(middleware.Heartbeat("/ping"))
-	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowedMethods:   []string{"HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowedHeaders:   []string{"Authorization", "X-CSRF-Token", "X-Request-ID"},
-		AllowCredentials: true,
-	}))
+	router.Use(middleware.CORSAllowOrigins("http://localhost:3000", "http://localhost:5173"))
 	router.Use(middleware.RequestID)
+	router.Use(middleware.VerifyAuth(jwtService))
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
-	router.Use(middleware.VerifyAuth(jwtService))
 
 	router.Route("/v1", func(router chi.Router) {
 		// Add public routes.

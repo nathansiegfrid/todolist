@@ -57,6 +57,7 @@ func VerifyAuth(tokenVerifier tokenVerifier) func(http.Handler) http.Handler {
 }
 
 // RequireAuth middleware returns an error response if the request is not authenticated.
+// It must be used after VerifyAuth middleware.
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		errCtxVal := r.Context().Value(tokenErrorContextKey{})
