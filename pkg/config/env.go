@@ -6,14 +6,21 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
-type envHelper struct {
+type EnvLoader struct {
 	missing   []string // List of mandatory environment variables that are missing.
 	malformed []string // List of environment variables that failed parsing.
 }
 
-func (env *envHelper) Validate() error {
+func NewEnvLoader() *EnvLoader {
+	godotenv.Load()
+	return &EnvLoader{}
+}
+
+func (env *EnvLoader) Validate() error {
 	if len(env.missing) > 0 {
 		return fmt.Errorf("missing mandatory env: %s", strings.Join(env.missing, ", "))
 	}
@@ -23,7 +30,7 @@ func (env *envHelper) Validate() error {
 	return nil
 }
 
-func (env *envHelper) Mandatory(key string) string {
+func (env *EnvLoader) MandatoryString(key string) string {
 	value, ok := os.LookupEnv(key)
 	if !ok {
 		env.missing = append(env.missing, key)
@@ -31,7 +38,7 @@ func (env *envHelper) Mandatory(key string) string {
 	return value
 }
 
-func (env *envHelper) Optional(key string, fallback string) string {
+func (env *EnvLoader) OptionalString(key string, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		return fallback
@@ -39,7 +46,7 @@ func (env *envHelper) Optional(key string, fallback string) string {
 	return value
 }
 
-func (env *envHelper) MandatoryInt(key string) int {
+func (env *EnvLoader) MandatoryInt(key string) int {
 	valueStr, ok := os.LookupEnv(key)
 	if !ok {
 		env.missing = append(env.missing, key)
@@ -53,7 +60,7 @@ func (env *envHelper) MandatoryInt(key string) int {
 	return value
 }
 
-func (env *envHelper) OptionalInt(key string, fallback int) int {
+func (env *EnvLoader) OptionalInt(key string, fallback int) int {
 	valueStr := os.Getenv(key)
 	if valueStr == "" {
 		return fallback
@@ -66,7 +73,7 @@ func (env *envHelper) OptionalInt(key string, fallback int) int {
 	return value
 }
 
-func (env *envHelper) MandatoryBool(key string) bool {
+func (env *EnvLoader) MandatoryBool(key string) bool {
 	valueStr, ok := os.LookupEnv(key)
 	if !ok {
 		env.missing = append(env.missing, key)
@@ -80,7 +87,7 @@ func (env *envHelper) MandatoryBool(key string) bool {
 	return value
 }
 
-func (env *envHelper) OptionalBool(key string, fallback bool) bool {
+func (env *EnvLoader) OptionalBool(key string, fallback bool) bool {
 	valueStr := os.Getenv(key)
 	if valueStr == "" {
 		return fallback
@@ -93,7 +100,7 @@ func (env *envHelper) OptionalBool(key string, fallback bool) bool {
 	return value
 }
 
-func (env *envHelper) MandatoryDuration(key string) time.Duration {
+func (env *EnvLoader) MandatoryDuration(key string) time.Duration {
 	valueStr, ok := os.LookupEnv(key)
 	if !ok {
 		env.missing = append(env.missing, key)
@@ -107,7 +114,7 @@ func (env *envHelper) MandatoryDuration(key string) time.Duration {
 	return value
 }
 
-func (env *envHelper) OptionalDuration(key string, fallback time.Duration) time.Duration {
+func (env *EnvLoader) OptionalDuration(key string, fallback time.Duration) time.Duration {
 	valueStr := os.Getenv(key)
 	if valueStr == "" {
 		return fallback

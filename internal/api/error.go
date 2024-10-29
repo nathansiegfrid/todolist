@@ -77,6 +77,10 @@ func ErrValidation(err error) error {
 	return err // Internal server error.
 }
 
+func ErrUnauthorized(message string) error {
+	return Error(http.StatusUnauthorized, message)
+}
+
 // ErrPermission is used when the user does not have enough authorization to do the request.
 func ErrPermission() error {
 	return Error(http.StatusForbidden, "Permission denied.")

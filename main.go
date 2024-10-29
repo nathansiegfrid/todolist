@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -21,14 +22,19 @@ func main() {
 	logger.SetDefaultSlog(os.Stderr, useJSONLog)
 
 	// CONFIG
-	c, err := config.Load()
-	if err != nil {
+	env := config.NewEnvLoader()
+	var (
+		apiPort     = env.OptionalInt("API_PORT", 8080)
+		postgresDSN = env.MandatoryString("POSTGRES_DSN")
+		jwtSecret   = env.MandatoryString("JWT_SECRET")
+	)
+	if err := env.Validate(); err != nil {
 		slog.Error(err.Error())
 		return
 	}
 
 	// DATABASE
-	db, err := database.Connect(c.PostgresDSN())
+	db, err := database.ConnectPostgres(postgresDSN)
 	if err != nil {
 		slog.Error(err.Error())
 		return
@@ -40,7 +46,7 @@ func main() {
 	}
 
 	// SERVICE HANDLERS
-	jwtService := auth.NewJWTService([]byte(c.JWTSecret))
+	jwtService := auth.NewJWTService([]byte(jwtSecret))
 	authHandler := auth.NewHandler(db, jwtService)
 	todoHandler := todo.NewHandler(db)
 
@@ -70,5 +76,5 @@ func main() {
 	})
 
 	// RUN SERVER
-	server.ListenAndServe(c.APIAddr(), router)
+	server.ListenAndServe(fmt.Sprintf(":%d", apiPort), router)
 }

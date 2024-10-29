@@ -22,7 +22,7 @@ func (t *Optional[T]) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &t.Data)
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler interface to support `gorilla/schema` decoding.
+// UnmarshalText implements `encoding.TextUnmarshaler` interface to support `gorilla/schema` decoding.
 func (t *Optional[T]) UnmarshalText(data []byte) error {
 	t.Defined = true
 	// If data is "null" and T is a pointer, leave it as nil.

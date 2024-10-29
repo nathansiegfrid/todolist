@@ -10,7 +10,7 @@ import (
 
 const retryConnectTimeout = 10 * time.Second
 
-func Connect(dsn string) (*sql.DB, error) {
+func ConnectPostgres(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("error setting up database connection: %w", err)

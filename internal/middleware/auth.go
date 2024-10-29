@@ -20,24 +20,24 @@ func VerifyAuth(tokenVerifier tokenVerifier) func(http.Handler) http.Handler {
 	verifyRequest := func(r *http.Request) (uuid.UUID, error) {
 		authHeaderValue := r.Header.Get("Authorization")
 		if authHeaderValue == "" {
-			return uuid.Nil, api.Error(http.StatusUnauthorized, "Authorization header not found.")
+			return uuid.Nil, api.ErrUnauthorized("Authorization header not found.")
 		}
 
 		// Check if Authorization header has "Bearer" prefix and extract the token.
 		token := strings.TrimPrefix(authHeaderValue, "Bearer ")
 		if token == authHeaderValue {
-			return uuid.Nil, api.Error(http.StatusUnauthorized, "Authorization header is not a Bearer token.")
+			return uuid.Nil, api.ErrUnauthorized("Authorization header is not a Bearer token.")
 		}
 
 		// Verify the token and extract the subject.
 		sub, err := tokenVerifier.VerifyToken(token)
 		if err != nil {
-			return uuid.Nil, api.Error(http.StatusUnauthorized, err.Error())
+			return uuid.Nil, api.ErrUnauthorized(err.Error())
 		}
 
 		uid, _ := uuid.Parse(sub)
 		if uid == uuid.Nil {
-			return uuid.Nil, api.Error(http.StatusUnauthorized, "Token subject is not a valid UUID.")
+			return uuid.Nil, api.ErrUnauthorized("Token subject is not a valid UUID.")
 		}
 		return uid, nil
 	}

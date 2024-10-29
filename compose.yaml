@@ -1,25 +1,21 @@
 services:
-  backend:
+  backend_svc:
     container_name: todolist
-    image: nathansiegfrid/todolist
+    image: siegfrid/todolist
     build: .
     ports:
       - ${API_PORT:-8080}:8080
     depends_on:
-      - postgres
+      - postgres_svc
     environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: app
+      POSTGRES_DSN: postgres://app_user:app_pwd@postgres_svc:5432/app_db
       JWT_SECRET: ${JWT_SECRET}
 
-  postgres:
+  postgres_svc:
     container_name: postgres
     image: postgres:17
     shm_size: 128mb
     environment:
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: app
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_pwd
+      POSTGRES_DB: app_db

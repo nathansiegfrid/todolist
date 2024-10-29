@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -40,17 +39,17 @@ func (s *JWTService) VerifyToken(signedToken string) (string, error) {
 		return s.secret, nil
 	})
 	if err != nil {
-		return "", api.Error(http.StatusUnauthorized, "Token is invalid.")
+		return "", api.ErrUnauthorized("Token is invalid.")
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !(ok && token.Valid) {
-		return "", api.Error(http.StatusUnauthorized, "Token is invalid.")
+		return "", api.ErrUnauthorized("Token is invalid.")
 	}
 
 	exp, _ := claims.GetExpirationTime() // Error value is always nil.
 	if time.Now().After(exp.Time) {
-		return "", api.Error(http.StatusUnauthorized, "Token is expired.")
+		return "", api.ErrUnauthorized("Token is expired.")
 	}
 
 	sub, _ := claims.GetSubject() // Error value is always nil.

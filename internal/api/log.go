@@ -23,7 +23,7 @@ func LogError(ctx context.Context, err error) {
 		return
 	}
 	if ErrorStatusCode(err) < 500 {
-		// Client errors are logged as info.
+		// Client errors are logged as INFO.
 		Logger(ctx).Info(err.Error())
 	} else {
 		// ERROR level logs, requires investigation/intervention.

@@ -75,7 +75,7 @@ func (h *Handler) handleLogin() http.HandlerFunc {
 		}
 
 		if len(users) == 0 || !users[0].CheckPassword(reqBody.Password) {
-			err := api.Error(http.StatusUnauthorized, "Incorrect email or password.")
+			err := api.ErrUnauthorized("Incorrect email or password.")
 			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
