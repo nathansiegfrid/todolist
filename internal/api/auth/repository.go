@@ -31,7 +31,7 @@ func (r *Repository) GetAll(ctx context.Context, filter *UserFilter) ([]*User, e
 	}
 	if v := filter.Email; v != nil {
 		where = append(where, fmt.Sprintf("email = $%d", argIndex))
-		args = append(args, *v)
+		args = append(args, strings.ToLower(*v))
 		argIndex += 1
 	}
 
@@ -95,7 +95,7 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO "user" (id, email, password_hash, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5)`,
-		u.ID, u.Email, u.PasswordHash, u.CreatedAt, u.UpdatedAt,
+		u.ID, strings.ToLower(u.Email), u.PasswordHash, u.CreatedAt, u.UpdatedAt,
 	)
 
 	if err != nil {
@@ -157,7 +157,7 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 		UPDATE "user"
 		SET email = $1, password_hash = $2, updated_at = $3
 		WHERE id = $4`,
-		u.Email, u.PasswordHash, u.UpdatedAt, id,
+		strings.ToLower(u.Email), u.PasswordHash, u.UpdatedAt, id,
 	)
 	if err != nil {
 		return err
