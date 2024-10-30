@@ -118,7 +118,7 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, api.ErrNotFound(id)
+			return nil, api.ErrIDNotFound(id)
 		}
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func getTodoForUpdate(ctx context.Context, tx *sql.Tx, id uuid.UUID) (*Todo, err
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, api.ErrNotFound(id)
+			return nil, api.ErrIDNotFound(id)
 		}
 		return nil, err
 	}
@@ -265,7 +265,7 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 		return err
 	}
 	if rowsAffected == 0 {
-		return api.ErrNotFound(id)
+		return api.ErrIDNotFound(id)
 	}
 	return nil
 }
@@ -291,7 +291,7 @@ func deleteTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return api.ErrNotFound(id)
+		return api.ErrIDNotFound(id)
 	}
 	return nil
 }

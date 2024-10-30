@@ -80,7 +80,7 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*User, error) {
 	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, api.ErrNotFound(id)
+			return nil, api.ErrIDNotFound(id)
 		}
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 	err = row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return api.ErrNotFound(id)
+			return api.ErrIDNotFound(id)
 		}
 		return err
 	}
@@ -168,7 +168,7 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 		return err
 	}
 	if rowsAffected == 0 {
-		return api.ErrNotFound(id)
+		return api.ErrIDNotFound(id)
 	}
 
 	return tx.Commit()

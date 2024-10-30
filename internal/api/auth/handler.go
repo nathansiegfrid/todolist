@@ -12,6 +12,8 @@ import (
 	"github.com/nathansiegfrid/todolist/internal/api"
 )
 
+var errLogin = api.Error(http.StatusUnauthorized, "Incorrect email or password.")
+
 type repository interface {
 	GetAll(ctx context.Context, filter *UserFilter) ([]*User, error)
 	Get(ctx context.Context, id uuid.UUID) (*User, error)
@@ -19,19 +21,15 @@ type repository interface {
 	Update(ctx context.Context, id uuid.UUID, update *UserUpdate) error
 }
 
-type tokenGenerator interface {
-	GenerateToken(subject string, duration time.Duration) (signedToken string, err error)
-}
-
 type Handler struct {
-	repository     repository
-	tokenGenerator tokenGenerator
+	repository repository
+	jwtService *JWTService
 }
 
-func NewHandler(db *sql.DB, tokenGenerator tokenGenerator) *Handler {
+func NewHandler(db *sql.DB, jwtService *JWTService) *Handler {
 	return &Handler{
-		repository:     NewRepository(db),
-		tokenGenerator: tokenGenerator,
+		repository: NewRepository(db),
+		jwtService: jwtService,
 	}
 }
 
@@ -75,20 +73,19 @@ func (h *Handler) handleLogin() http.HandlerFunc {
 		}
 
 		if len(users) == 0 || !users[0].CheckPassword(reqBody.Password) {
-			err := api.ErrUnauthorized("Incorrect email or password.")
+			err := errLogin
 			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
 		}
 
-		userID := users[0].ID.String()
-		token, err := h.tokenGenerator.GenerateToken(userID, 5*time.Minute)
+		token, err := h.jwtService.GenerateToken(users[0].ID, 5*time.Minute)
 		if err != nil {
 			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return
 		}
-		refreshToken, err := h.tokenGenerator.GenerateToken(userID, 72*time.Hour)
+		refreshToken, err := h.jwtService.GenerateToken(users[0].ID, 72*time.Hour)
 		if err != nil {
 			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
@@ -122,7 +119,7 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 			validation.Field(&reqBody.Email, validation.Required, is.Email),
 			validation.Field(&reqBody.Password, validation.Required, validation.Length(8, 0)),
 		); err != nil {
-			err := api.ErrValidation(err)
+			err := api.ErrDataValidation(err)
 			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return

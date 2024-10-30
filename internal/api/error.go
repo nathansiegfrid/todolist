@@ -4,11 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
-	"github.com/gorilla/schema"
 )
 
 type ErrorResponse struct {
@@ -19,7 +17,7 @@ type ErrorResponse struct {
 
 // Error implements the `error` interface.
 func (e ErrorResponse) Error() string {
-	return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.Message)
+	return e.Message
 }
 
 func Error(statusCode int, message string) error {
@@ -38,55 +36,33 @@ func ErrorStatusCode(err error) int {
 	return http.StatusInternalServerError
 }
 
-// ErrInvalidID is used when the request param is not a valid ID.
-func ErrInvalidID(id string) error {
-	return Errorf(http.StatusBadRequest, "Invalid ID '%s'.", id)
-}
-
-// ErrInvalidURLQuery is used when `gorilla/schema` failed to parse the URL query.
-// Error value from `gorilla/schema` contains the keys that failed to be parsed.
-func ErrInvalidURLQuery(err error) error {
-	var errs schema.MultiError
-	if errors.As(err, &errs) {
-		// The multi error value doesn't make sense, so only the keys are returned.
-		keys := make([]string, 0, len(errs))
-		for k := range errs {
-			keys = append(keys, k)
-		}
-		return Errorf(http.StatusBadRequest, "Invalid URL query: %s.", strings.Join(keys, ", "))
-	}
-	return err // Internal server error.
-}
-
-// ErrInvalidJSON is used when JSON decoder failed to parse the request body.
-func ErrInvalidJSON() error {
-	return Error(http.StatusBadRequest, "Invalid JSON request body.")
-}
-
-// ErrValidation is used when validation by `ozzo-validation` returns an error.
+// ErrDataValidation is used when validation by `ozzo-validation` returns an error.
 // Error value from `ozzo-validation` can be marshaled into key-value JSON object.
-func ErrValidation(err error) error {
-	var valErr validation.Errors
-	if errors.As(err, &valErr) {
+func ErrDataValidation(err error) error {
+	var errs validation.Errors
+	if errors.As(err, &errs) {
+		data := make(map[string]string, len(errs))
+		// Capitalize first letter of the error messages and add period at the end.
+		for k, v := range errs {
+			errMsg := v.Error()
+			if len(errMsg) > 0 {
+				data[k] = string(errMsg[0]-32) + errMsg[1:] + "."
+			}
+		}
 		return ErrorResponse{
 			StatusCode: http.StatusBadRequest,
-			Message:    "Invalid input value.",
-			Data:       valErr,
+			Message:    "Input verification failed.",
+			Data:       data,
 		}
 	}
 	return err // Internal server error.
 }
 
-func ErrUnauthorized(message string) error {
-	return Error(http.StatusUnauthorized, message)
-}
-
-// ErrPermission is used when the user does not have enough authorization to do the request.
 func ErrPermission() error {
 	return Error(http.StatusForbidden, "Permission denied.")
 }
 
-func ErrNotFound(id uuid.UUID) error {
+func ErrIDNotFound(id uuid.UUID) error {
 	return Errorf(http.StatusNotFound, "ID '%s' not found.", id)
 }
 

@@ -16,6 +16,14 @@ func NewOptional[T any](data T) Optional[T] {
 	return Optional[T]{Data: data, Defined: true}
 }
 
+// MarshalJSON implements the `json.Marshaler` interface.
+func (t *Optional[T]) MarshalJSON() ([]byte, error) {
+	if !t.Defined {
+		return []byte("null"), nil
+	}
+	return json.Marshal(t.Data)
+}
+
 // UnmarshalJSON implements the `json.Unmarshaler` interface.
 func (t *Optional[T]) UnmarshalJSON(data []byte) error {
 	t.Defined = true

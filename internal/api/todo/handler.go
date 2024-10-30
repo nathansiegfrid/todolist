@@ -93,7 +93,7 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 		validation.Field(&todo.Subject, validation.Required, validation.Length(0, 100)),
 		validation.Field(&todo.Description, validation.Length(0, 1000)),
 	); err != nil {
-		err := api.ErrValidation(err)
+		err := api.ErrDataValidation(err)
 		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return
@@ -130,7 +130,7 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 		validation.Field(&update.Subject, validation.NilOrNotEmpty, validation.Length(0, 100)),
 		validation.Field(&update.Description, validation.Length(0, 1000)),
 	); err != nil {
-		err := api.ErrValidation(err)
+		err := api.ErrDataValidation(err)
 		api.LogError(r.Context(), err)
 		api.WriteError(w, err)
 		return

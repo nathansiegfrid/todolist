@@ -2,10 +2,17 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/nathansiegfrid/todolist/internal/api"
+)
+
+var (
+	errTokenInvalid = api.Error(http.StatusUnauthorized, "Token verification failed.")
+	errTokenExpired = api.Error(http.StatusUnauthorized, "Token has expired.")
 )
 
 type JWTService struct {
@@ -16,9 +23,9 @@ func NewJWTService(secret []byte) *JWTService {
 	return &JWTService{secret}
 }
 
-func (s *JWTService) GenerateToken(subject string, duration time.Duration) (string, error) {
+func (s *JWTService) GenerateToken(subject uuid.UUID, duration time.Duration) (string, error) {
 	claims := &jwt.RegisteredClaims{
-		Subject:   subject,
+		Subject:   subject.String(),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
@@ -31,27 +38,28 @@ func (s *JWTService) GenerateToken(subject string, duration time.Duration) (stri
 	return signedToken, nil
 }
 
-func (s *JWTService) VerifyToken(signedToken string) (string, error) {
+func (s *JWTService) VerifyToken(signedToken string) (uuid.UUID, error) {
 	token, err := jwt.ParseWithClaims(signedToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return s.secret, nil
 	})
-	if err != nil {
-		return "", api.ErrUnauthorized("Token is invalid.")
+	if err != nil || !token.Valid {
+		return uuid.Nil, errTokenInvalid
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
-	if !(ok && token.Valid) {
-		return "", api.ErrUnauthorized("Token is invalid.")
+	if !ok {
+		return uuid.Nil, errTokenInvalid
 	}
 
 	exp, _ := claims.GetExpirationTime() // Error value is always nil.
 	if time.Now().After(exp.Time) {
-		return "", api.ErrUnauthorized("Token is expired.")
+		return uuid.Nil, errTokenExpired
 	}
 
 	sub, _ := claims.GetSubject() // Error value is always nil.
-	return sub, nil
+	uid, _ := uuid.Parse(sub)
+	return uid, nil
 }

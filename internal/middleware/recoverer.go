@@ -18,7 +18,7 @@ func Recoverer(next http.Handler) http.Handler {
 				// Log with request ID and user ID from context.
 				api.Logger(r.Context()).Error(fmt.Sprintf("panic: %s", err), "trace", string(debug.Stack()))
 				// Respond with 500 Internal Server Error.
-				api.WriteError(w, errors.New("unknown error"))
+				api.WriteError(w, errors.New("unexpected error"))
 			}
 		}()
 		next.ServeHTTP(w, r)
