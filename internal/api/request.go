@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/schema"
+	"github.com/samber/lo"
 )
 
 // ReadID reads {id} from URL path and parses it into uuid.UUID.
@@ -39,14 +39,10 @@ func ReadURLQuery[T any](r *http.Request) (*T, error) {
 	dst := new(T)
 	err := decodeURLQuery(r.URL.Query(), dst)
 	if err != nil {
-		var errs schema.MultiError
-		if errors.As(err, &errs) {
-			// The multi error value doesn't make sense, so only the keys are returned.
-			keys := make([]string, 0, len(errs))
-			for k := range errs {
-				keys = append(keys, k)
-			}
-			return nil, Errorf(http.StatusBadRequest, "Invalid URL query: %s.", strings.Join(keys, ", "))
+		if errs, ok := err.(schema.MultiError); ok {
+			// The MultiError map values doesn't make sense, so only the keys are returned.
+			queryKeys := strings.Join(lo.Keys(errs), ", ")
+			return nil, Errorf(http.StatusBadRequest, "Invalid URL query: %s.", queryKeys)
 		}
 		return nil, err // Internal server error.
 	}

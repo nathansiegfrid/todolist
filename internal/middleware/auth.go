@@ -19,6 +19,8 @@ type tokenErrorContextKey struct{}
 
 // VerifyAuth middleware verifies the Authorization header and extracts user ID from the token.
 func VerifyAuth(jwtService *auth.JWTService) func(http.Handler) http.Handler {
+	// TODO: Use cookie-based authentication for web clients.
+	// Cookies support root domain and subdomain sharing.
 	verifyRequest := func(r *http.Request) (uuid.UUID, error) {
 		authHeaderValue := r.Header.Get("Authorization")
 		if authHeaderValue == "" {

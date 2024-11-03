@@ -25,7 +25,7 @@ func (env *EnvLoader) Validate() error {
 		return fmt.Errorf("missing mandatory env: %s", strings.Join(env.missing, ", "))
 	}
 	if len(env.malformed) > 0 {
-		return fmt.Errorf("malformed env values: %s", strings.Join(env.malformed, ", "))
+		return fmt.Errorf("malformed env: %s", strings.Join(env.malformed, ", "))
 	}
 	return nil
 }

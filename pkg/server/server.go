@@ -40,7 +40,7 @@ func ListenAndServe(addr string, router http.Handler) {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
 	defer shutdownCancel()
 
-	slog.Info("shutting down HTTP server...")
+	slog.Info("shutting down HTTP server")
 	if err := svr.Shutdown(shutdownCtx); err != nil {
 		slog.Error(fmt.Sprintf("error shutting down HTTP server: %s", err))
 	}

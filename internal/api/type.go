@@ -44,7 +44,7 @@ func (t *Optional[T]) UnmarshalText(data []byte) error {
 
 // Value implements the `driver.Valuer` interface to support `ozzo-validation`.
 func (t Optional[T]) Value() (driver.Value, error) {
-	// Don't use pointer receiver because it won't work with `ozzo-validation`.
+	// IMPORTANT: Pointer receiver won't work with `ozzo-validation`.
 	if !t.Defined {
 		return nil, nil
 	}

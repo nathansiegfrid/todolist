@@ -7,6 +7,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
+	"github.com/samber/lo"
 )
 
 type ErrorResponse struct {
@@ -39,26 +40,23 @@ func ErrorStatusCode(err error) int {
 // ErrDataValidation is used when validation by `ozzo-validation` returns an error.
 // Error value from `ozzo-validation` can be marshaled into key-value JSON object.
 func ErrDataValidation(err error) error {
-	var errs validation.Errors
-	if errors.As(err, &errs) {
-		data := make(map[string]string, len(errs))
-		// Capitalize first letter of the error messages and add period at the end.
-		for k, v := range errs {
+	if errs, ok := err.(validation.Errors); ok {
+		resData := lo.MapEntries(errs, func(k string, v error) (string, string) {
+			// Capitalize first letter of the error messages and add period at the end.
 			errMsg := v.Error()
-			if len(errMsg) > 0 {
-				data[k] = string(errMsg[0]-32) + errMsg[1:] + "."
-			}
-		}
+			return k, string(errMsg[0]-32) + errMsg[1:] + "."
+		})
 		return ErrorResponse{
 			StatusCode: http.StatusBadRequest,
 			Message:    "Input verification failed.",
-			Data:       data,
+			Data:       resData,
 		}
 	}
 	return err // Internal server error.
 }
 
 func ErrPermission() error {
+	// TODO: Should return 404 instead of 403?
 	return Error(http.StatusForbidden, "Permission denied.")
 }
 
