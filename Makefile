@@ -21,10 +21,6 @@ db-redo:
 
 # DOCKER COMMANDS
 docker-build:
-	docker build -t nathansiegfrid/todolist .
+	docker build -t siegfrid/todolist .
 docker-push:
-	docker push nathansiegfrid/todolist
-docker-up:
-	docker compose up -d --build
-docker-down:
-	docker compose down
+	docker push siegfrid/todolist

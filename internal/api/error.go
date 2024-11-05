@@ -7,7 +7,6 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
-	"github.com/samber/lo"
 )
 
 type ErrorResponse struct {
@@ -30,34 +29,39 @@ func Errorf(statusCode int, format string, args ...any) error {
 }
 
 func ErrorStatusCode(err error) int {
-	var apiErr ErrorResponse
-	if errors.As(err, &apiErr) {
-		return apiErr.StatusCode
+	var res ErrorResponse
+	if errors.As(err, &res) {
+		return res.StatusCode
 	}
 	return http.StatusInternalServerError
 }
 
 // ErrDataValidation is used when validation by `ozzo-validation` returns an error.
 // Error value from `ozzo-validation` can be marshaled into key-value JSON object.
-func ErrDataValidation(err error) error {
-	if errs, ok := err.(validation.Errors); ok {
-		resData := lo.MapEntries(errs, func(k string, v error) (string, string) {
+func ErrDataValidation(errs validation.Errors) error {
+	resData := make(map[string]string, len(errs))
+	for k, v := range errs {
+		if err, ok := v.(validation.Error); ok {
 			// Capitalize first letter of the error messages and add period at the end.
-			errMsg := v.Error()
-			return k, string(errMsg[0]-32) + errMsg[1:] + "."
-		})
-		return ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Message:    "Input verification failed.",
-			Data:       resData,
+			errMsg := err.Message()
+			resData[k] = string(errMsg[0]-32) + errMsg[1:] + "."
+		} else {
+			// Some errors are not of type `validation.Error`
+			// which can happen due to code bug instead of user input.
+			// E.g. "cannot get the length of struct" when using length rules on a struct.
+			return fmt.Errorf("validate field '%s': %w", k, v) // INTERNAL SERVER ERROR
 		}
 	}
-	return err // Internal server error.
+	return ErrorResponse{
+		StatusCode: http.StatusBadRequest,
+		Message:    "Input verification failed.",
+		Data:       resData,
+	}
 }
 
 func ErrPermission() error {
 	// TODO: Should return 404 instead of 403?
-	return Error(http.StatusForbidden, "Permission denied.")
+	return Error(http.StatusForbidden, "You are not authorized to perform this request.")
 }
 
 func ErrIDNotFound(id uuid.UUID) error {

@@ -119,7 +119,9 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 			validation.Field(&reqBody.Email, validation.Required, is.Email),
 			validation.Field(&reqBody.Password, validation.Required, validation.Length(8, 0)),
 		); err != nil {
-			err := api.ErrDataValidation(err)
+			if errs, ok := err.(validation.Errors); ok {
+				err = api.ErrDataValidation(errs)
+			}
 			api.LogError(r.Context(), err)
 			api.WriteError(w, err)
 			return

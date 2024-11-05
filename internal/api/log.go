@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -22,8 +23,10 @@ func LogError(ctx context.Context, err error) {
 	if err == nil {
 		return
 	}
-	if ErrorStatusCode(err) < 500 {
-		Logger(ctx).Info(fmt.Sprintf("Client error: %s", err))
+
+	var res ErrorResponse
+	if errors.As(err, &res) && res.StatusCode < 500 {
+		Logger(ctx).Info("Client error: " + res.Message)
 	} else {
 		Logger(ctx).Error(fmt.Sprintf("Internal error: %s.", err))
 	}

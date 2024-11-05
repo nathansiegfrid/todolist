@@ -30,7 +30,7 @@ func main() {
 		jwtSecret   = env.MandatoryString("JWT_SECRET")
 	)
 	if err := env.Validate(); err != nil {
-		slog.Error(fmt.Sprintf("Configuration error: %s.", err))
+		slog.Error(fmt.Sprintf("Config error: %s.", err))
 		return
 	}
 
@@ -42,14 +42,14 @@ func main() {
 	}
 	defer db.Close()
 
-	// MIGRATIONS
+	// SCHEMA MIGRATION
 	results, err := postgres.Migrate(db, "migrations")
 	if err != nil {
-		slog.Error(fmt.Sprintf("Database migration error: %s.", err))
+		slog.Error(fmt.Sprintf("Schema migration error: %s.", err))
 		return
 	}
 	for _, r := range results {
-		slog.Info(fmt.Sprintf("Applied migration file %s.", r.Source.Path))
+		slog.Info(fmt.Sprintf("Applied schema migration %s.", r.Source.Path))
 	}
 
 	// SERVICE HANDLERS

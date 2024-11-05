@@ -32,7 +32,7 @@ func WriteJSON(w http.ResponseWriter, data any) error {
 
 func WriteError(w http.ResponseWriter, err error) error {
 	var res ErrorResponse
-	if errors.As(err, &res) && res.StatusCode != http.StatusInternalServerError {
+	if errors.As(err, &res) && res.StatusCode < 500 {
 		return write(w, res.StatusCode, responseBody{
 			Status:  "FAIL",
 			Message: res.Message,

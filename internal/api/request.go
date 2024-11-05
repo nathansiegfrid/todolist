@@ -44,7 +44,7 @@ func ReadURLQuery[T any](r *http.Request) (*T, error) {
 			queryKeys := strings.Join(lo.Keys(errs), ", ")
 			return nil, Errorf(http.StatusBadRequest, "Invalid URL query: %s.", queryKeys)
 		}
-		return nil, err // Internal server error.
+		return nil, err // INTERNAL SERVER ERROR
 	}
 	return dst, nil
 }
