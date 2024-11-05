@@ -8,7 +8,7 @@ services:
     depends_on:
       - postgres_svc
     environment:
-      POSTGRES_DSN: postgres://app_user:app_pwd@postgres_svc:5432/app_db
+      POSTGRES_URL: postgres://app_user:app_pwd@postgres_svc:5432/app_db
       JWT_SECRET: ${JWT_SECRET}
 
   postgres_svc:

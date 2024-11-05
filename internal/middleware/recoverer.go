@@ -16,7 +16,7 @@ func Recoverer(next http.Handler) http.Handler {
 		defer func() {
 			if err := recover(); err != nil {
 				// Log with request ID and user ID from context.
-				api.Logger(r.Context()).Error(fmt.Sprintf("panic: %s", err), "trace", string(debug.Stack()))
+				api.Logger(r.Context()).Error(fmt.Sprintf("Panic: %s.", err), "trace", string(debug.Stack()))
 				// Respond with 500 Internal Server Error.
 				api.WriteError(w, errors.New("unexpected error"))
 			}

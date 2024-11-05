@@ -11,38 +11,45 @@ import (
 	"github.com/nathansiegfrid/todolist/internal/api/todo"
 	"github.com/nathansiegfrid/todolist/internal/middleware"
 	"github.com/nathansiegfrid/todolist/pkg/config"
-	"github.com/nathansiegfrid/todolist/pkg/database"
 	"github.com/nathansiegfrid/todolist/pkg/logger"
+	"github.com/nathansiegfrid/todolist/pkg/postgres"
 	"github.com/nathansiegfrid/todolist/pkg/server"
 )
 
 func main() {
 	// LOGGER
+	// Use "go run main.go production" to enable JSON logging.
 	useJSONLog := len(os.Args) > 1 && os.Args[1] == "production"
 	logger.SetDefaultSlog(os.Stderr, useJSONLog)
 
 	// CONFIG
 	env := config.NewEnvLoader()
 	var (
-		apiPort     = env.OptionalInt("API_PORT", 8080)
-		postgresDSN = env.MandatoryString("POSTGRES_DSN")
+		serverPort  = env.OptionalInt("SERVER_PORT", 8080)
+		postgresURL = env.MandatoryString("POSTGRES_URL")
 		jwtSecret   = env.MandatoryString("JWT_SECRET")
 	)
 	if err := env.Validate(); err != nil {
-		slog.Error(err.Error())
+		slog.Error(fmt.Sprintf("Configuration error: %s.", err))
 		return
 	}
 
 	// DATABASE
-	db, err := database.ConnectPostgres(postgresDSN)
+	db, err := postgres.Connect(postgresURL)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error(fmt.Sprintf("Database connection error: %s.", err))
 		return
 	}
 	defer db.Close()
-	if err := database.Migrate(db, "migrations"); err != nil {
-		slog.Error(err.Error())
+
+	// MIGRATIONS
+	results, err := postgres.Migrate(db, "migrations")
+	if err != nil {
+		slog.Error(fmt.Sprintf("Database migration error: %s.", err))
 		return
+	}
+	for _, r := range results {
+		slog.Info(fmt.Sprintf("Applied migration file %s.", r.Source.Path))
 	}
 
 	// SERVICE HANDLERS
@@ -76,5 +83,8 @@ func main() {
 	})
 
 	// RUN SERVER
-	server.ListenAndServe(fmt.Sprintf(":%d", apiPort), router)
+	slog.Info(fmt.Sprintf("Listening on port %d.", serverPort))
+	if err := server.ListenAndServe(serverPort, router); err != nil {
+		slog.Error(fmt.Sprintf("HTTP server error: %s.", err))
+	}
 }

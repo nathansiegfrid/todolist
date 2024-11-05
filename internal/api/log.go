@@ -2,8 +2,8 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"runtime/debug"
 
 	"github.com/google/uuid"
 )
@@ -23,10 +23,8 @@ func LogError(ctx context.Context, err error) {
 		return
 	}
 	if ErrorStatusCode(err) < 500 {
-		// Client errors are logged as INFO.
-		Logger(ctx).Info(err.Error())
+		Logger(ctx).Info(fmt.Sprintf("Client error: %s", err))
 	} else {
-		// ERROR level logs, requires investigation/intervention.
-		Logger(ctx).Error(err.Error(), "trace", string(debug.Stack()))
+		Logger(ctx).Error(fmt.Sprintf("Internal error: %s.", err))
 	}
 }

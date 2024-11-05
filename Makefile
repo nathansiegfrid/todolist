@@ -13,11 +13,11 @@ update:
 
 # DB MIGRATION COMMANDS
 db-up:
-	goose -dir migrations postgres "$(POSTGRES_DSN)" up
+	goose -dir migrations postgres "$(POSTGRES_URL)" up
 db-down:
-	goose -dir migrations postgres "$(POSTGRES_DSN)" down
+	goose -dir migrations postgres "$(POSTGRES_URL)" down
 db-redo:
-	goose -dir migrations postgres "$(POSTGRES_DSN)" redo
+	goose -dir migrations postgres "$(POSTGRES_URL)" redo
 
 # DOCKER COMMANDS
 docker-build:

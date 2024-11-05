@@ -16,31 +16,31 @@ type responseBody struct {
 	Data    any    `json:"data,omitempty"`
 }
 
-func write(w http.ResponseWriter, statusCode int, body *responseBody) error {
+func write(w http.ResponseWriter, statusCode int, body responseBody) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	return json.NewEncoder(w).Encode(body)
+	return json.NewEncoder(w).Encode(&body)
 }
 
 func WriteOK(w http.ResponseWriter) error {
-	return write(w, http.StatusOK, &responseBody{Status: "SUCCESS"})
+	return write(w, http.StatusOK, responseBody{Status: "SUCCESS"})
 }
 
 func WriteJSON(w http.ResponseWriter, data any) error {
-	return write(w, http.StatusOK, &responseBody{Status: "SUCCESS", Data: data})
+	return write(w, http.StatusOK, responseBody{Status: "SUCCESS", Data: data})
 }
 
 func WriteError(w http.ResponseWriter, err error) error {
 	var res ErrorResponse
 	if errors.As(err, &res) && res.StatusCode != http.StatusInternalServerError {
-		return write(w, res.StatusCode, &responseBody{
+		return write(w, res.StatusCode, responseBody{
 			Status:  "FAIL",
 			Message: res.Message,
 			Data:    res.Data,
 		})
 	}
 
-	return write(w, http.StatusInternalServerError, &responseBody{
+	return write(w, http.StatusInternalServerError, responseBody{
 		Status:  "ERROR",
 		Message: "Unexpected error. We've noted the issue. Please try again later.", // Log the error.
 	})

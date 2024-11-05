@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/nathansiegfrid/todolist/internal/api"
+	"github.com/nathansiegfrid/todolist/pkg/postgres"
 )
 
 type Repository struct {
@@ -99,8 +99,7 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 	)
 
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
-			// 23505 is the PostgreSQL error code for unique_violation.
+		if postgres.IsUniqueViolation(err) {
 			return api.ErrConflict("Email", u.Email)
 		}
 		return err
@@ -149,9 +148,10 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 		u.SetNewPassword(*v)
 		updated = true
 	}
-	if updated {
-		u.UpdatedAt = time.Now()
+	if !updated {
+		return nil
 	}
+	u.UpdatedAt = time.Now()
 
 	result, err := tx.ExecContext(ctx, `
 		UPDATE "user"

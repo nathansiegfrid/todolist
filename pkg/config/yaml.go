@@ -13,7 +13,7 @@ import (
 func LoadYAML(file string, dst any) error {
 	f, err := os.ReadFile(file)
 	if err != nil {
-		return fmt.Errorf("error opening config file: %v", err)
+		return fmt.Errorf("file: %v", err)
 	}
 
 	// Load optional .env file.
@@ -22,7 +22,7 @@ func LoadYAML(file string, dst any) error {
 	f = []byte(os.ExpandEnv(string(f)))
 
 	if err = yaml.Unmarshal(f, dst); err != nil {
-		return fmt.Errorf("error decoding config file: %v", err)
+		return fmt.Errorf("decode: %v", err)
 	}
 	return nil
 }

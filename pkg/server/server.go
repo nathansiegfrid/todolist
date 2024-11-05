@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -14,9 +13,9 @@ import (
 const gracefulShutdownTimeout = 10 * time.Second
 
 // ListenAndServe starts an HTTP server and with graceful shutdown.
-func ListenAndServe(addr string, router http.Handler) {
+func ListenAndServe(port int, router http.Handler) error {
 	svr := http.Server{
-		Addr:    addr,
+		Addr:    fmt.Sprintf("0.0.0.0:%d", port),
 		Handler: router,
 	}
 
@@ -24,24 +23,25 @@ func ListenAndServe(addr string, router http.Handler) {
 	signalCtx, signalCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer signalCancel()
 
+	// Run HTTP server.
+	var err error
 	go func() {
-		// Run HTTP server.
-		slog.Info(fmt.Sprintf("HTTP server listening on %s", svr.Addr))
-		if err := svr.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			slog.Error(fmt.Sprintf("error running HTTP server: %s", err))
-		}
+		err = svr.ListenAndServe()
 		signalCancel() // Stop listening for signals.
 	}()
 
 	// Wait for interrupt/terminate signals.
 	<-signalCtx.Done()
+	// Return any error that occurred during ListenAndServe.
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("listen and serve: %w", err)
+	}
 
-	// Set timeout for graceful shutdown.
+	// Start graceful shutdown.
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), gracefulShutdownTimeout)
 	defer shutdownCancel()
-
-	slog.Info("shutting down HTTP server")
 	if err := svr.Shutdown(shutdownCtx); err != nil {
-		slog.Error(fmt.Sprintf("error shutting down HTTP server: %s", err))
+		return fmt.Errorf("shut down: %w", err)
 	}
+	return nil
 }
