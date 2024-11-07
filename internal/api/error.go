@@ -37,7 +37,6 @@ func ErrorStatusCode(err error) int {
 }
 
 // ErrDataValidation is used when validation by `ozzo-validation` returns an error.
-// Error value from `ozzo-validation` can be marshaled into key-value JSON object.
 func ErrDataValidation(errs validation.Errors) error {
 	resData := make(map[string]string, len(errs))
 	for k, v := range errs {

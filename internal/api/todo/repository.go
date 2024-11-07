@@ -23,33 +23,33 @@ func NewRepository(db *sql.DB) *Repository {
 func (r *Repository) GetAll(ctx context.Context, filter *TodoFilter) ([]*Todo, error) {
 	// Translate filter into WHERE conditions and args.
 	where, args, argIndex := []string{"TRUE"}, []any{}, 1
-	if v := filter.ID; v.Defined {
+	if v := filter.ID; v != nil {
 		where = append(where, fmt.Sprintf("id = $%d", argIndex))
-		args = append(args, v.Data)
+		args = append(args, *v)
 		argIndex++
 	}
-	if v := filter.UserID; v.Defined {
+	if v := filter.UserID; v != nil {
 		where = append(where, fmt.Sprintf("user_id = $%d", argIndex))
-		args = append(args, v.Data)
+		args = append(args, *v)
 		argIndex++
 	}
-	if v := filter.Priority; v.Defined {
+	if v := filter.Priority; v != nil {
 		where = append(where, fmt.Sprintf("priority = $%d", argIndex))
-		args = append(args, v.Data)
+		args = append(args, *v)
 		argIndex++
 	}
-	if v := filter.DueDate; v.Defined {
-		if v.Data == nil {
+	if v := filter.DueDate; v != nil {
+		if !v.Valid {
 			where = append(where, "due_date IS NULL")
 		} else {
 			where = append(where, fmt.Sprintf("due_date::date = $%d::date", argIndex))
-			args = append(args, v.Data)
+			args = append(args, *v)
 			argIndex++
 		}
 	}
-	if v := filter.Completed; v.Defined {
+	if v := filter.Completed; v != nil {
 		where = append(where, fmt.Sprintf("completed = $%d", argIndex))
-		args = append(args, v.Data)
+		args = append(args, *v)
 		argIndex++
 	}
 
@@ -218,30 +218,11 @@ func updateTodo(ctx context.Context, tx *sql.Tx, id uuid.UUID, update *TodoUpdat
 		return api.ErrPermission()
 	}
 
-	var updated bool
-	if v := update.Subject; v.Defined {
-		todo.Subject = v.Data
-		updated = true
-	}
-	if v := update.Description; v.Defined {
-		todo.Description = v.Data
-		updated = true
-	}
-	if v := update.Priority; v.Defined {
-		todo.Priority = v.Data
-		updated = true
-	}
-	if v := update.DueDate; v.Defined {
-		todo.DueDate = v.Data
-		updated = true
-	}
-	if v := update.Completed; v.Defined {
-		todo.Completed = v.Data
-		updated = true
-	}
-	if !updated {
-		return nil
-	}
+	todo.Subject = update.Subject.ValueOr(todo.Subject)
+	todo.Description = update.Description.ValueOr(todo.Description)
+	todo.Priority = update.Priority.ValueOr(todo.Priority)
+	todo.DueDate = update.DueDate.ValueOr(todo.DueDate)
+	todo.Completed = update.Completed.ValueOr(todo.Completed)
 	todo.UpdatedAt = time.Now()
 
 	result, err := tx.ExecContext(ctx, `

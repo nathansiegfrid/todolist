@@ -4,35 +4,39 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist/internal/api"
+	"github.com/guregu/null/v5"
+	"github.com/nathansiegfrid/todolist/pkg/field"
 )
 
+// Types in `guregu/null` package implements `json.Unmarshaler` and `encoding.TextUnmarshaler` interfaces.
+// They supports URL query parsing with `gorilla/schema` decoder.
+
 type Todo struct {
-	ID          uuid.UUID  `json:"id"`
-	UserID      uuid.UUID  `json:"user_id"`
-	Subject     string     `json:"subject"`
-	Description string     `json:"description"`
-	Priority    int        `json:"priority"`
-	DueDate     *time.Time `json:"due_date"`
-	Completed   bool       `json:"completed"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	UserID      uuid.UUID `json:"user_id"`
+	Subject     string    `json:"subject"`
+	Description string    `json:"description"`
+	Priority    int       `json:"priority"`
+	DueDate     null.Time `json:"due_date"`
+	Completed   bool      `json:"completed"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type TodoUpdate struct {
-	Subject     api.Optional[string]     `json:"subject"`
-	Description api.Optional[string]     `json:"description"`
-	Priority    api.Optional[int]        `json:"priority"`
-	DueDate     api.Optional[*time.Time] `json:"due_date"`
-	Completed   api.Optional[bool]       `json:"completed"`
+	Subject     field.Option[string]    `json:"subject"`
+	Description field.Option[string]    `json:"description"`
+	Priority    field.Option[int]       `json:"priority"`
+	DueDate     field.Option[null.Time] `json:"due_date"`
+	Completed   field.Option[bool]      `json:"completed"`
 }
 
 type TodoFilter struct {
-	ID        api.Optional[uuid.UUID]  `schema:"id"`
-	UserID    api.Optional[uuid.UUID]  `schema:"user_id"`
-	Priority  api.Optional[int]        `schema:"priority"`
-	DueDate   api.Optional[*time.Time] `schema:"due_date"`
-	Completed api.Optional[bool]       `schema:"completed"`
-	Offset    int                      `schema:"offset"`
-	Limit     int                      `schema:"limit"`
+	ID        *uuid.UUID `schema:"id"`
+	UserID    *uuid.UUID `schema:"user_id"`
+	Priority  *int       `schema:"priority"`
+	DueDate   *null.Time `schema:"due_date"`
+	Completed *bool      `schema:"completed"`
+	Offset    int        `schema:"offset"`
+	Limit     int        `schema:"limit"`
 }

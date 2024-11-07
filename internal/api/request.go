@@ -3,10 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
-	"reflect"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/schema"
@@ -14,7 +11,7 @@ import (
 )
 
 // ReadID reads {id} from URL path and parses it into uuid.UUID.
-// Its centralized here to allow easy modifications if the routing library changes.
+// Supports `go-chi/chi` and standard `http` routers.
 func ReadID(r *http.Request) (uuid.UUID, error) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
@@ -37,7 +34,7 @@ func ReadJSON[T any](r *http.Request) (*T, error) {
 // Supports primitive types, time.Time, and uuid.UUID.
 func ReadURLQuery[T any](r *http.Request) (*T, error) {
 	dst := new(T)
-	err := decodeURLQuery(r.URL.Query(), dst)
+	err := schema.NewDecoder().Decode(dst, r.URL.Query())
 	if err != nil {
 		if errs, ok := err.(schema.MultiError); ok {
 			// The MultiError map values doesn't make sense, so only the keys are returned.
@@ -47,17 +44,4 @@ func ReadURLQuery[T any](r *http.Request) (*T, error) {
 		return nil, err // INTERNAL SERVER ERROR
 	}
 	return dst, nil
-}
-
-func decodeURLQuery(src url.Values, dst any) error {
-	dec := schema.NewDecoder()
-	// Add custom converter because default decoder doesn't support time.Time.
-	dec.RegisterConverter(time.Time{}, func(value string) reflect.Value {
-		t, err := time.Parse(time.RFC3339, value) // Same time format as JSON.
-		if err != nil {
-			return reflect.Value{} // Zero value represents invalid Value and "Invalid" kind.
-		}
-		return reflect.ValueOf(t)
-	})
-	return dec.Decode(dst, src)
 }
