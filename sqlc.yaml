@@ -1,0 +1,11 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema: migrations
+    queries: queries
+    gen:
+      go:
+        package: sqlc
+        out: internal/sqlc
+        emit_empty_slices: true
+        omit_unused_structs: true

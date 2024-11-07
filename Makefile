@@ -11,6 +11,16 @@ update:
 	go get -u -t ./...
 	go mod tidy
 
+# CODE GEN COMMANDS
+sqlc:
+	sqlc generate
+
+# DEV TOOLS INSTALL COMMANDS
+install-goose:
+	go install github.com/pressly/goose/v3/cmd/goose@latest
+install-sqlc:
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
 # DB MIGRATION COMMANDS
 db-up:
 	goose -dir migrations postgres "$(POSTGRES_URL)" up
