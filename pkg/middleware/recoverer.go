@@ -1,12 +1,12 @@
 package middleware
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"runtime/debug"
 
-	"github.com/nathansiegfrid/todolist/internal/api"
+	"github.com/nathansiegfrid/todolist/pkg/logger"
+	"github.com/nathansiegfrid/todolist/pkg/response"
 )
 
 // Recoverer recovers from panics and logs the error.
@@ -15,10 +15,13 @@ func Recoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				// Log with request ID and user ID from context.
-				api.Logger(r.Context()).Error(fmt.Sprintf("Panic: %s.", err), "trace", string(debug.Stack()))
-				// Respond with 500 Internal Server Error.
-				api.WriteError(w, errors.New("unexpected error"))
+				logger.Error(
+					r.Context(),
+					fmt.Sprintf("Panic: %s.", err),
+					"category", "internal_error",
+					"trace", string(debug.Stack()),
+				)
+				response.WriteError(w, response.ErrorResponse{StatusCode: http.StatusInternalServerError})
 			}
 		}()
 		next.ServeHTTP(w, r)

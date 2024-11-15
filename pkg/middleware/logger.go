@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nathansiegfrid/todolist/internal/api"
+	"github.com/nathansiegfrid/todolist/pkg/logger"
 )
 
 // responseWriter is a wrapper for http.ResponseWriter that
@@ -44,9 +44,10 @@ func Logger(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(ww, r)
 
-		// Log with request ID and user ID from context.
-		api.Logger(r.Context()).Info(
+		logger.Info(
+			r.Context(),
 			fmt.Sprintf("API response: %d %s.", ww.statusCode, http.StatusText(ww.statusCode)),
+			"category", "response",
 			"status", ww.statusCode,
 			"method", r.Method,
 			"path", r.URL.EscapedPath(),

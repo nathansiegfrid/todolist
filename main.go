@@ -6,14 +6,15 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/nathansiegfrid/todolist/internal/api"
-	"github.com/nathansiegfrid/todolist/internal/api/auth"
-	"github.com/nathansiegfrid/todolist/internal/api/todo"
-	"github.com/nathansiegfrid/todolist/internal/middleware"
+	"github.com/nathansiegfrid/todolist/internal/auth"
+	"github.com/nathansiegfrid/todolist/internal/todo"
 	"github.com/nathansiegfrid/todolist/pkg/config"
+	"github.com/nathansiegfrid/todolist/pkg/handler"
 	"github.com/nathansiegfrid/todolist/pkg/logger"
+	"github.com/nathansiegfrid/todolist/pkg/middleware"
 	"github.com/nathansiegfrid/todolist/pkg/postgres"
 	"github.com/nathansiegfrid/todolist/pkg/server"
+	"github.com/nathansiegfrid/todolist/pkg/token"
 )
 
 func main() {
@@ -53,18 +54,18 @@ func main() {
 	}
 
 	// SERVICE HANDLERS
-	jwtService := auth.NewJWTService([]byte(jwtSecret))
-	authHandler := auth.NewHandler(db, jwtService)
+	jwtAuth := token.NewJWTAuth([]byte(jwtSecret))
+	authHandler := auth.NewHandler(db, jwtAuth)
 	todoHandler := todo.NewHandler(db)
 
 	// ROUTER
 	router := chi.NewRouter()
-	router.NotFound(api.NotFound)
-	router.MethodNotAllowed(api.MethodNotAllowed)
+	router.NotFound(handler.NotFound)
+	router.MethodNotAllowed(handler.MethodNotAllowed)
 	router.Use(middleware.Heartbeat("/ping"))
 	router.Use(middleware.CORSAllowOrigins("http://localhost:3000", "http://localhost:5173"))
 	router.Use(middleware.RequestID)
-	router.Use(middleware.VerifyAuth(jwtService))
+	router.Use(middleware.VerifyAuth(jwtAuth))
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
@@ -86,5 +87,6 @@ func main() {
 	slog.Info(fmt.Sprintf("Listening on port %d.", serverPort))
 	if err := server.ListenAndServe(serverPort, router); err != nil {
 		slog.Error(fmt.Sprintf("HTTP server error: %s.", err))
+		return
 	}
 }

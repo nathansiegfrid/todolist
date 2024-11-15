@@ -1,10 +1,11 @@
-package api
+package handler
 
 import (
 	"net/http"
 	"slices"
 	"strings"
 
+	"github.com/nathansiegfrid/todolist/pkg/response"
 	"github.com/samber/lo"
 )
 
@@ -27,23 +28,26 @@ func (hmap MethodHandler) HandlerFunc() http.HandlerFunc {
 	allowHeaderValue := strings.Join(methods, ", ")
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		serveHTTP := hmap[r.Method]
-		if serveHTTP == nil {
-			// If no handler found, respond with 405 Method Not Allowed.
+		serve := hmap[r.Method]
+		if serve == nil {
 			w.Header().Set("Allow", allowHeaderValue)
 			MethodNotAllowed(w, r)
 			return
 		}
-		serveHTTP(w, r)
+		serve(w, r)
 	}
 }
 
 func NotFound(w http.ResponseWriter, _ *http.Request) {
-	err := Error(http.StatusNotFound, "Resource not found.")
-	WriteError(w, err)
+	response.WriteError(w, response.ErrorResponse{
+		StatusCode: http.StatusNotFound,
+		Message:    "Resource not found.",
+	})
 }
 
 func MethodNotAllowed(w http.ResponseWriter, _ *http.Request) {
-	err := Error(http.StatusMethodNotAllowed, "Method not allowed.")
-	WriteError(w, err)
+	response.WriteError(w, response.ErrorResponse{
+		StatusCode: http.StatusMethodNotAllowed,
+		Message:    "Method not allowed.",
+	})
 }

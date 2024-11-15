@@ -7,7 +7,9 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist/internal/api"
+	"github.com/nathansiegfrid/todolist/pkg/handler"
+	"github.com/nathansiegfrid/todolist/pkg/request"
+	"github.com/nathansiegfrid/todolist/pkg/response"
 )
 
 type repository interface {
@@ -29,63 +31,55 @@ func NewHandler(db *sql.DB) *Handler {
 }
 
 func (h *Handler) HandleTodosRoute() http.HandlerFunc {
-	return api.MethodHandler{
-		"GET":  h.getAllTodos,
-		"POST": h.createTodo,
+	return handler.MethodHandler{
+		"GET":  handler.ErrorHandlerFunc(h.getAllTodos),
+		"POST": handler.ErrorHandlerFunc(h.createTodo),
 	}.HandlerFunc()
 }
 
 func (h *Handler) HandleTodosIDRoute() http.HandlerFunc {
-	return api.MethodHandler{
-		"GET":    h.getTodo,
-		"PATCH":  h.updateTodo,
-		"DELETE": h.deleteTodo,
+	return handler.MethodHandler{
+		"GET":    handler.ErrorHandlerFunc(h.getTodo),
+		"PATCH":  handler.ErrorHandlerFunc(h.updateTodo),
+		"DELETE": handler.ErrorHandlerFunc(h.deleteTodo),
 	}.HandlerFunc()
 }
 
-func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getAllTodos(w http.ResponseWriter, r *http.Request) error {
 	// Read URL query.
-	filter, err := api.ReadURLQuery[TodoFilter](r)
+	filter, err := request.ReadURLQuery[TodoFilter](r)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	todos, err := h.repository.GetAll(r.Context(), filter)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
-	api.WriteJSON(w, todos)
+
+	return response.WriteJSON(w, todos)
 }
 
-func (h *Handler) getTodo(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) getTodo(w http.ResponseWriter, r *http.Request) error {
 	// Read request param "id".
-	id, err := api.ReadID(r)
+	id, err := request.ReadID(r)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	todo, err := h.repository.Get(r.Context(), id)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
-	api.WriteJSON(w, todo)
+
+	return response.WriteJSON(w, todo)
 }
 
-func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) error {
 	// Read request body.
-	todo, err := api.ReadJSON[Todo](r)
+	todo, err := request.ReadJSON[Todo](r)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	// Validate user input.
@@ -94,37 +88,30 @@ func (h *Handler) createTodo(w http.ResponseWriter, r *http.Request) {
 		validation.Field(&todo.Description, validation.Length(0, 1000)),
 	); err != nil {
 		if errs, ok := err.(validation.Errors); ok {
-			err = api.ErrDataValidation(errs)
+			return response.ErrDataValidation(errs)
 		}
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	err = h.repository.Create(r.Context(), todo)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
-	api.WriteOK(w)
+
+	return response.WriteOK(w)
 }
 
-func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) error {
 	// Read request param "id".
-	id, err := api.ReadID(r)
+	id, err := request.ReadID(r)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	// Read request body.
-	update, err := api.ReadJSON[TodoUpdate](r)
+	update, err := request.ReadJSON[TodoUpdate](r)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	// Validate user input.
@@ -133,36 +120,30 @@ func (h *Handler) updateTodo(w http.ResponseWriter, r *http.Request) {
 		validation.Field(&update.Description, validation.Length(0, 1000)),
 	); err != nil {
 		if errs, ok := err.(validation.Errors); ok {
-			err = api.ErrDataValidation(errs)
+			return response.ErrDataValidation(errs)
 		}
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	err = h.repository.Update(r.Context(), id, update)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
-	api.WriteOK(w)
+
+	return response.WriteOK(w)
 }
 
-func (h *Handler) deleteTodo(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) deleteTodo(w http.ResponseWriter, r *http.Request) error {
 	// Read request param "id".
-	id, err := api.ReadID(r)
+	id, err := request.ReadID(r)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
 
 	err = h.repository.Delete(r.Context(), id)
 	if err != nil {
-		api.LogError(r.Context(), err)
-		api.WriteError(w, err)
-		return
+		return err
 	}
-	api.WriteOK(w)
+
+	return response.WriteOK(w)
 }

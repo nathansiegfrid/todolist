@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist/internal/api"
 	"github.com/nathansiegfrid/todolist/pkg/postgres"
+	"github.com/nathansiegfrid/todolist/pkg/request"
+	"github.com/nathansiegfrid/todolist/pkg/response"
 )
 
 type Repository struct {
@@ -80,7 +81,7 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*User, error) {
 	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, api.ErrIDNotFound(id)
+			return nil, response.ErrIDNotFound("User", id)
 		}
 		return nil, err
 	}
@@ -100,7 +101,7 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 
 	if err != nil {
 		if postgres.IsUniqueViolation(err) {
-			return api.ErrConflict("Email", u.Email)
+			return response.ErrConflict("Email", u.Email)
 		}
 		return err
 	}
@@ -128,14 +129,15 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 	err = row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return api.ErrIDNotFound(id)
+			return response.ErrIDNotFound("User", id)
 		}
 		return err
 	}
 
 	// Check if resource is owned by user.
-	if u.ID != api.UserIDFromContext(ctx) {
-		return api.ErrPermission()
+	userID := request.UserIDFromContext(ctx)
+	if userID == uuid.Nil || u.ID != userID {
+		return response.ErrPermission()
 	}
 
 	// Apply patch update.
@@ -168,7 +170,7 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, update *UserUpdat
 		return err
 	}
 	if rowsAffected == 0 {
-		return api.ErrIDNotFound(id)
+		return response.ErrIDNotFound("User", id)
 	}
 
 	return tx.Commit()

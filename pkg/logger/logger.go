@@ -1,22 +1,34 @@
 package logger
 
 import (
-	"io"
+	"context"
 	"log/slog"
 
-	"github.com/lmittmann/tint"
+	"github.com/google/uuid"
+	"github.com/nathansiegfrid/todolist/pkg/request"
 )
 
-// SetDefaultSlog configures the global standard logger.
-// This will affect all log output from `log` and `slog` package.
-func SetDefaultSlog(w io.Writer, json bool) {
-	var handler slog.Handler
-	if json {
-		handler = slog.NewJSONHandler(w, nil)
-	} else {
-		// Colored human-readable output.
-		handler = tint.NewHandler(w, nil)
+// Logger returns the default slog.Logger with additional information from context.Context.
+func Logger(ctx context.Context) *slog.Logger {
+	logger := slog.Default()
+	if v := request.RequestIDFromContext(ctx); v != "" {
+		logger = logger.With("request_id", v)
 	}
-	slogger := slog.New(handler)
-	slog.SetDefault(slogger)
+	if v := request.UserIDFromContext(ctx); v != uuid.Nil {
+		logger = logger.With("user_id", v)
+	}
+	return logger
 }
+
+func Info(ctx context.Context, msg string, args ...any) {
+	Logger(ctx).Info(msg, args...)
+}
+
+func Error(ctx context.Context, msg string, args ...any) {
+	Logger(ctx).Error(msg, args...)
+}
+
+// func Fatal(ctx context.Context, msg string, args ...any) {
+// 	Logger(ctx).Error(msg, args...)
+// 	os.Exit(1)
+// }

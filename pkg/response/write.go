@@ -1,8 +1,7 @@
-package api
+package response
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 )
 
@@ -30,18 +29,16 @@ func WriteJSON(w http.ResponseWriter, data any) error {
 	return write(w, http.StatusOK, responseBody{Status: "SUCCESS", Data: data})
 }
 
-func WriteError(w http.ResponseWriter, err error) error {
-	var res ErrorResponse
-	if errors.As(err, &res) && res.StatusCode < 500 {
-		return write(w, res.StatusCode, responseBody{
-			Status:  "FAIL",
-			Message: res.Message,
-			Data:    res.Data,
-		})
+func WriteError(w http.ResponseWriter, res ErrorResponse) error {
+	var status string
+	if res.StatusCode >= http.StatusInternalServerError {
+		status = "ERROR"
+	} else {
+		status = "FAIL"
 	}
-
-	return write(w, http.StatusInternalServerError, responseBody{
-		Status:  "ERROR",
-		Message: "Unexpected error. We've noted the issue. Please try again later.", // Log the error.
+	return write(w, res.StatusCode, responseBody{
+		Status:  status,
+		Message: res.Message,
+		Data:    res.Data,
 	})
 }

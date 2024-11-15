@@ -9,10 +9,13 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist/internal/api"
+	"github.com/nathansiegfrid/todolist/pkg/handler"
+	"github.com/nathansiegfrid/todolist/pkg/request"
+	"github.com/nathansiegfrid/todolist/pkg/response"
+	"github.com/nathansiegfrid/todolist/pkg/token"
 )
 
-var errLogin = api.Error(http.StatusUnauthorized, "Incorrect email or password.")
+var errLogin = response.Error(http.StatusUnauthorized, "Incorrect email or password.")
 
 type repository interface {
 	GetAll(ctx context.Context, filter *UserFilter) ([]*User, error)
@@ -23,95 +26,82 @@ type repository interface {
 
 type Handler struct {
 	repository repository
-	jwtService *JWTService
+	jwtAuth    *token.JWTAuth
 }
 
-func NewHandler(db *sql.DB, jwtService *JWTService) *Handler {
+func NewHandler(db *sql.DB, jwtAuth *token.JWTAuth) *Handler {
 	return &Handler{
 		repository: NewRepository(db),
-		jwtService: jwtService,
+		jwtAuth:    jwtAuth,
 	}
 }
 
 func (h *Handler) HandleLoginRoute() http.HandlerFunc {
-	return api.MethodHandler{"POST": h.handleLogin()}.HandlerFunc()
+	return handler.MethodHandler{"POST": h.handleLogin()}.HandlerFunc()
 }
 
 func (h *Handler) HandleRegisterRoute() http.HandlerFunc {
-	return api.MethodHandler{"POST": h.handleRegister()}.HandlerFunc()
+	return handler.MethodHandler{"POST": h.handleRegister()}.HandlerFunc()
 }
 
 func (h *Handler) HandleVerifyAuthRoute() http.HandlerFunc {
-	return api.MethodHandler{"GET": h.handleVerifyAuth()}.HandlerFunc()
+	return handler.MethodHandler{"GET": h.handleVerifyAuth()}.HandlerFunc()
 }
 
 func (h *Handler) handleLogin() http.HandlerFunc {
-	type request struct {
+	type requestData struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	type response struct {
+	type responseData struct {
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
+	return handler.ErrorHandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 		// Read request body.
-		reqBody, err := api.ReadJSON[request](r)
+		reqBody, err := request.ReadJSON[requestData](r)
 		if err != nil {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
 
 		users, err := h.repository.GetAll(r.Context(), &UserFilter{Email: &reqBody.Email, Limit: 1})
 		if err != nil {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
 
 		if len(users) == 0 || !users[0].CheckPassword(reqBody.Password) {
-			err := errLogin
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return errLogin
 		}
 
-		token, err := h.jwtService.GenerateToken(users[0].ID, 5*time.Minute)
+		token, err := h.jwtAuth.GenerateToken(users[0].ID, 5*time.Minute)
 		if err != nil {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
-		refreshToken, err := h.jwtService.GenerateToken(users[0].ID, 72*time.Hour)
+		refreshToken, err := h.jwtAuth.GenerateToken(users[0].ID, 72*time.Hour)
 		if err != nil {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
 
-		api.WriteJSON(w, &response{
+		return response.WriteJSON(w, &responseData{
 			Token:        token,
 			RefreshToken: refreshToken,
 		})
-	}
+	})
 }
 
 func (h *Handler) handleRegister() http.HandlerFunc {
-	type request struct {
+	type requestData struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
+	return handler.ErrorHandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
 		// Read request body.
-		reqBody, err := api.ReadJSON[request](r)
+		reqBody, err := request.ReadJSON[requestData](r)
 		if err != nil {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
 
 		// Validate user input.
@@ -120,11 +110,9 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 			validation.Field(&reqBody.Password, validation.Required, validation.Length(8, 0)),
 		); err != nil {
 			if errs, ok := err.(validation.Errors); ok {
-				err = api.ErrDataValidation(errs)
+				return response.ErrDataValidation(errs)
 			}
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
 
 		// Create user entity from request.
@@ -133,34 +121,31 @@ func (h *Handler) handleRegister() http.HandlerFunc {
 
 		err = h.repository.Create(r.Context(), user)
 		if err != nil {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
-		api.WriteOK(w)
-	}
+
+		return response.WriteOK(w)
+	})
 }
 
 // HandleVerifyAuth returns user info if the request is correctly authenticated.
 // Use with Authenticator middleware.
 func (h *Handler) handleVerifyAuth() http.HandlerFunc {
-	type response struct {
+	type responseData struct {
 		ID    string `json:"id"`
 		Email string `json:"email"`
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		userID := api.UserIDFromContext(r.Context())
+	return handler.ErrorHandlerFunc(func(w http.ResponseWriter, r *http.Request) error {
+		userID := request.UserIDFromContext(r.Context())
 		user, err := h.repository.Get(r.Context(), userID)
 		if err != nil {
-			api.LogError(r.Context(), err)
-			api.WriteError(w, err)
-			return
+			return err
 		}
 
-		api.WriteJSON(w, &response{
+		return response.WriteJSON(w, &responseData{
 			ID:    user.ID.String(),
 			Email: user.Email,
 		})
-	}
+	})
 }

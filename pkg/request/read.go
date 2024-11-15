@@ -1,12 +1,12 @@
-package api
+package request
 
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/schema"
+	"github.com/nathansiegfrid/todolist/pkg/response"
 	"github.com/samber/lo"
 )
 
@@ -16,7 +16,7 @@ func ReadID(r *http.Request) (uuid.UUID, error) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		return uuid.Nil, Errorf(http.StatusBadRequest, "Invalid ID param '%s'.", id)
+		return uuid.Nil, response.Errorf(http.StatusBadRequest, "Invalid ID param '%s'.", id)
 	}
 	return id, nil
 }
@@ -25,7 +25,7 @@ func ReadJSON[T any](r *http.Request) (*T, error) {
 	dst := new(T)
 	err := json.NewDecoder(r.Body).Decode(dst)
 	if err != nil {
-		return nil, Error(http.StatusBadRequest, "Invalid JSON body.")
+		return nil, response.Error(http.StatusBadRequest, "Invalid JSON body.")
 	}
 	return dst, nil
 }
@@ -34,12 +34,17 @@ func ReadJSON[T any](r *http.Request) (*T, error) {
 // Supports primitive types, time.Time, and uuid.UUID.
 func ReadURLQuery[T any](r *http.Request) (*T, error) {
 	dst := new(T)
-	err := schema.NewDecoder().Decode(dst, r.URL.Query())
+	dec := schema.NewDecoder()
+	dec.IgnoreUnknownKeys(true)
+	err := dec.Decode(dst, r.URL.Query())
 	if err != nil {
 		if errs, ok := err.(schema.MultiError); ok {
 			// The MultiError map values doesn't make sense, so only the keys are returned.
-			queryKeys := strings.Join(lo.Keys(errs), ", ")
-			return nil, Errorf(http.StatusBadRequest, "Invalid URL query: %s.", queryKeys)
+			return nil, response.ErrorResponse{
+				StatusCode: http.StatusBadRequest,
+				Message:    "Invalid URL query.",
+				Data:       lo.Keys(errs),
+			}
 		}
 		return nil, err // INTERNAL SERVER ERROR
 	}

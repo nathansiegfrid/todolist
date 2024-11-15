@@ -1,4 +1,4 @@
-package api
+package response
 
 import (
 	"errors"
@@ -16,25 +16,38 @@ type ErrorResponse struct {
 }
 
 // Error implements the `error` interface.
-func (e ErrorResponse) Error() string {
-	return e.Message
+func (res ErrorResponse) Error() string {
+	return res.Message
 }
 
 func Error(statusCode int, message string) error {
-	return ErrorResponse{StatusCode: statusCode, Message: message}
+	return ErrorResponse{
+		StatusCode: statusCode,
+		Message:    message,
+	}
 }
 
 func Errorf(statusCode int, format string, args ...any) error {
-	return ErrorResponse{StatusCode: statusCode, Message: fmt.Sprintf(format, args...)}
+	return ErrorResponse{
+		StatusCode: statusCode,
+		Message:    fmt.Sprintf(format, args...),
+	}
 }
 
-func ErrorStatusCode(err error) int {
+func ErrorResponseFrom(err error) ErrorResponse {
 	var res ErrorResponse
 	if errors.As(err, &res) {
-		return res.StatusCode
+		return res
 	}
-	return http.StatusInternalServerError
+	return ErrorResponse{
+		StatusCode: http.StatusInternalServerError,
+		Message:    "Unexpected error.",
+	}
 }
+
+// -----------------------
+// COMMON ERROR RESPONSES
+// -----------------------
 
 // ErrDataValidation is used when validation by `ozzo-validation` returns an error.
 func ErrDataValidation(errs validation.Errors) error {
@@ -53,7 +66,7 @@ func ErrDataValidation(errs validation.Errors) error {
 	}
 	return ErrorResponse{
 		StatusCode: http.StatusBadRequest,
-		Message:    "Input verification failed.",
+		Message:    "Submitted data is invalid.",
 		Data:       resData,
 	}
 }
@@ -63,10 +76,10 @@ func ErrPermission() error {
 	return Error(http.StatusForbidden, "You are not authorized to perform this request.")
 }
 
-func ErrIDNotFound(id uuid.UUID) error {
-	return Errorf(http.StatusNotFound, "ID '%s' not found.", id)
+func ErrIDNotFound(resource string, id uuid.UUID) error {
+	return Errorf(http.StatusNotFound, "%s with ID '%s' not found.", resource, id)
 }
 
-func ErrConflict(key string, value string) error {
-	return Errorf(http.StatusConflict, "%s '%s' already exists.", key, value)
+func ErrConflict(resource string, value string) error {
+	return Errorf(http.StatusConflict, "%s '%s' already exists.", resource, value)
 }

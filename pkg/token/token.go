@@ -1,4 +1,4 @@
-package auth
+package token
 
 import (
 	"fmt"
@@ -7,43 +7,44 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/nathansiegfrid/todolist/internal/api"
+	"github.com/nathansiegfrid/todolist/pkg/response"
 )
 
 var (
-	errTokenInvalid = api.Error(http.StatusUnauthorized, "Token verification failed.")
-	errTokenExpired = api.Error(http.StatusUnauthorized, "Token has expired.")
+	errTokenInvalid = response.Error(http.StatusUnauthorized, "Token verification failed.")
+	errTokenExpired = response.Error(http.StatusUnauthorized, "Token has expired.")
+	errTokenSubject = response.Error(http.StatusUnauthorized, "Token subject is not a valid UUID.")
 )
 
-type JWTService struct {
+type JWTAuth struct {
 	secret []byte
 }
 
-func NewJWTService(secret []byte) *JWTService {
-	return &JWTService{secret}
+func NewJWTAuth(secret []byte) *JWTAuth {
+	return &JWTAuth{secret}
 }
 
-func (s *JWTService) GenerateToken(subject uuid.UUID, duration time.Duration) (string, error) {
+func (auth *JWTAuth) GenerateToken(userID uuid.UUID, duration time.Duration) (string, error) {
 	claims := &jwt.RegisteredClaims{
-		Subject:   subject.String(),
+		Subject:   userID.String(),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString(s.secret)
+	signedToken, err := token.SignedString(auth.secret)
 	if err != nil {
 		return "", err
 	}
 	return signedToken, nil
 }
 
-func (s *JWTService) VerifyToken(signedToken string) (uuid.UUID, error) {
+func (auth *JWTAuth) VerifyToken(signedToken string) (uuid.UUID, error) {
 	token, err := jwt.ParseWithClaims(signedToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return s.secret, nil
+		return auth.secret, nil
 	})
 	if err != nil || !token.Valid {
 		return uuid.Nil, errTokenInvalid
@@ -60,6 +61,9 @@ func (s *JWTService) VerifyToken(signedToken string) (uuid.UUID, error) {
 	}
 
 	sub, _ := claims.GetSubject() // Error value is always nil.
-	uid, _ := uuid.Parse(sub)
-	return uid, nil
+	userID, _ := uuid.Parse(sub)
+	if userID == uuid.Nil {
+		return uuid.Nil, errTokenSubject
+	}
+	return userID, nil
 }

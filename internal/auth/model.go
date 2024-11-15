@@ -21,7 +21,7 @@ func (u *User) SetNewPassword(p string) {
 	sum := sha256.Sum256([]byte(p)) // Use checksum to avoid 72 bytes limit on bcrypt.
 	h, err := bcrypt.GenerateFromPassword(sum[:], bcrypt.DefaultCost)
 	if err != nil {
-		panic(fmt.Errorf("error hashing password: %w", err))
+		panic(fmt.Errorf("hash password: %w", err))
 	}
 	u.PasswordHash = h
 }
